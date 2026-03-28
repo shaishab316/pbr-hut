@@ -4,7 +4,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { Job } from 'bullmq';
 import { MAIL_QUEUE, MailJobs } from './mail.constants';
 
-interface WelcomeJobData {
+export interface WelcomeJobData {
   email: string;
   name: string;
   otp: string;

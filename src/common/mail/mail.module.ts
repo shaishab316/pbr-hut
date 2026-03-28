@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +6,7 @@ import { MailProcessor } from './mail.processor';
 import { MAIL_QUEUE } from './mail.constants';
 import type { Env } from '../../config/app.config';
 
+@Global()
 @Module({
   imports: [
     MailerModule.forRootAsync({
@@ -24,7 +25,6 @@ import type { Env } from '../../config/app.config';
         },
       }),
     }),
-
     BullModule.registerQueue({ name: MAIL_QUEUE }),
   ],
   providers: [MailProcessor],
