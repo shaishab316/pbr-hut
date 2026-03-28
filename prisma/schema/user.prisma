@@ -15,6 +15,7 @@ model User {
   @@index([email])
   @@index([phone])
   @@index([role])
+  @@map("users")
 }
 
 enum UserRole {

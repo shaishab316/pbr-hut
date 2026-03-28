@@ -2,7 +2,7 @@
 CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'ADMIN', 'RIDER');
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "email" TEXT,
     "phone" TEXT,
@@ -13,20 +13,20 @@ CREATE TABLE "User" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
+CREATE UNIQUE INDEX "users_phone_key" ON "users"("phone");
 
 -- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
+CREATE INDEX "users_email_idx" ON "users"("email");
 
 -- CreateIndex
-CREATE INDEX "User_phone_idx" ON "User"("phone");
+CREATE INDEX "users_phone_idx" ON "users"("phone");
 
 -- CreateIndex
-CREATE INDEX "User_role_idx" ON "User"("role");
+CREATE INDEX "users_role_idx" ON "users"("role");
