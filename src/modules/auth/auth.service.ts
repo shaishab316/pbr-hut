@@ -1,15 +1,20 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AuthCacheRepository } from './repository/auth.cache.repository';
+import {
+  AuthCacheRepository,
+  type UnverifiedUser,
+} from './repository/auth.cache.repository';
 import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
 import { hashPassword } from '@/common/helpers';
 import type { SignUpInput } from './dto/sign-up.dto';
 import { OtpService } from '../otp/otp.service';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { UserRepository } from '../user/repositories/user.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly authCacheRepo: AuthCacheRepository,
+    private readonly userRepo: UserRepository,
     private readonly contactStrategyFactory: ContactStrategyFactory,
     private readonly otpService: OtpService,
   ) {}
@@ -29,20 +34,20 @@ export class AuthService {
     const unverifiedUser = {
       name: signUpDto.name,
       ...strategy.buildContactFields(signUpDto),
-      password: await hashPassword(signUpDto.password),
+      passwordHash: await hashPassword(signUpDto.password),
       createdAt: new Date(),
-    };
+    } satisfies UnverifiedUser;
 
     await this.authCacheRepo.saveUnverifiedUser(identifier, unverifiedUser);
 
-    const otp = await this.otpService.generate(identifier);
+    const otp = this.otpService.generate(identifier);
     await strategy.sendVerification(signUpDto, otp);
 
     return { message: 'Verification sent', identifier };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    const isValid = await this.otpService.verify(dto.otp, dto.identifier);
+    const isValid = this.otpService.verify(dto.otp, dto.identifier);
     if (!isValid) {
       throw new BadRequestException('Invalid or expired OTP');
     }
@@ -54,7 +59,7 @@ export class AuthService {
       throw new BadRequestException('Session expired, please sign up again');
     }
 
-    // TODO: userRepo.create(unverifiedUser)
+    await this.userRepo.create(unverifiedUser);
 
     await this.authCacheRepo.deleteUnverifiedUser(dto.identifier);
 

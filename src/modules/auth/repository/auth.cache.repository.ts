@@ -1,13 +1,11 @@
 import { RedisService } from '@/modules/redis/redis.service';
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 
-export type UnverifiedUser = {
-  name: string;
-  email?: string;
-  phone?: string;
-  password: string;
-  createdAt: Date;
-};
+export type UnverifiedUser = Pick<
+  Prisma.UserCreateInput,
+  'name' | 'email' | 'phone' | 'passwordHash' | 'createdAt'
+>;
 
 @Injectable()
 export class AuthCacheRepository {

@@ -1,8 +1,7 @@
 import type { Env } from '@/config/app.config';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac } from 'crypto';
-import { generate, verify } from 'otplib';
+import { totp } from 'otplib';
 
 const OTP_OPTIONS = {
   digits: 6,
@@ -18,38 +17,22 @@ export class OtpService {
 
   constructor(private readonly config: ConfigService<Env, true>) {
     this.baseSecret = this.config.get('OTP_SECRET', { infer: true });
+    totp.options = OTP_OPTIONS;
   }
 
   private buildSecret(identifier: string): string {
-    return createHmac('sha256', this.baseSecret)
-      .update(identifier)
-      .digest('base64url')
-      .toUpperCase()
-      .replace(/[^A-Z2-7]/g, '');
+    return this.baseSecret + identifier;
   }
 
-  async generate(
-    identifier: string,
-    options: OtpOptions = {},
-  ): Promise<string> {
-    return generate({
-      secret: this.buildSecret(identifier),
-      ...OTP_OPTIONS,
-      ...options,
-    });
+  generate(identifier: string, options: OtpOptions = {}): string {
+    if (Object.keys(options).length)
+      totp.options = { ...OTP_OPTIONS, ...options };
+    return totp.generate(this.buildSecret(identifier));
   }
 
-  async verify(
-    token: string,
-    identifier: string,
-    options: OtpOptions = {},
-  ): Promise<boolean> {
-    const result = await verify({
-      token,
-      secret: this.buildSecret(identifier),
-      ...OTP_OPTIONS,
-      ...options,
-    });
-    return result.valid;
+  verify(token: string, identifier: string, options: OtpOptions = {}): boolean {
+    if (Object.keys(options).length)
+      totp.options = { ...OTP_OPTIONS, ...options };
+    return totp.check(token, this.buildSecret(identifier));
   }
 }
