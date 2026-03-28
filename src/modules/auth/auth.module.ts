@@ -7,6 +7,13 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { AuthCacheRepository } from './repository/auth.cache.repository';
+import { EmailContactStrategy } from './strategies/email.contact.strategy';
+import { PhoneContactStrategy } from './strategies/phone.contact.strategy';
+import {
+  CONTACT_STRATEGIES,
+  type IContactStrategy,
+} from './strategies/contact.strategy.interface';
+import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
 
 @Module({
   imports: [
@@ -21,7 +28,22 @@ import { AuthCacheRepository } from './repository/auth.cache.repository';
     }),
     UserModule,
   ],
-  providers: [AuthService, JwtStrategy, AuthCacheRepository],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    AuthCacheRepository,
+    EmailContactStrategy,
+    PhoneContactStrategy,
+    {
+      provide: CONTACT_STRATEGIES,
+      useFactory: (
+        email: EmailContactStrategy,
+        phone: PhoneContactStrategy,
+      ): IContactStrategy[] => [email, phone],
+      inject: [EmailContactStrategy, PhoneContactStrategy],
+    },
+    ContactStrategyFactory,
+  ],
   controllers: [AuthController],
   exports: [JwtModule],
 })
