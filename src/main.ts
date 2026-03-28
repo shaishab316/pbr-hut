@@ -10,6 +10,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import { setupApiDocs } from './common/config/api-docs.config';
 import type { Env } from './config/app.config';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,7 +18,7 @@ async function bootstrap() {
 
   //? security headers
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/docs') || req.path.startsWith('/ws-docs')) {
+    if (req.path.startsWith('/docs')) {
       helmet({ contentSecurityPolicy: false })(req, res, next);
     } else {
       helmet()(req, res, next);
@@ -41,7 +42,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ZodValidationPipe());
 
   //? global interceptors
-  // app.useGlobalInterceptors(new ResponseInterceptor()); /** Todo: create */
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   //? global exception filter
   // app.useGlobalFilters(new GlobalExceptionFilter()); //* TODO: implement a global exception filter to handle all exceptions in a consistent way
