@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
+import { AuthCacheRepository } from './repository/auth.cache.repository';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { UserModule } from '../user/user.module';
     }),
     UserModule,
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, AuthCacheRepository],
   controllers: [AuthController],
   exports: [JwtModule],
 })
