@@ -1,6 +1,7 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto, SignUpInput } from './dto/sign-up.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -10,6 +11,13 @@ export class AuthController {
   @HttpCode(200)
   async signUp(@Body() dto: SignUpDto) {
     const result = await this.authService.signUp(dto as unknown as SignUpInput);
+
+    return result;
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    const result = await this.authService.verifyOtp(dto);
 
     return result;
   }

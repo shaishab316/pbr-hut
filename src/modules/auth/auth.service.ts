@@ -4,6 +4,7 @@ import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
 import { hashPassword } from '@/common/helpers';
 import type { SignUpInput } from './dto/sign-up.dto';
 import { OtpService } from '../otp/otp.service';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Injectable()
 export class AuthService {
@@ -38,5 +39,25 @@ export class AuthService {
     await strategy.sendVerification(signUpDto, otp);
 
     return { message: 'Verification sent', identifier };
+  }
+
+  async verifyOtp(dto: VerifyOtpDto) {
+    const isValid = await this.otpService.verify(dto.otp, dto.identifier);
+    if (!isValid) {
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    const unverifiedUser = await this.authCacheRepo.getUnverifiedUser(
+      dto.identifier,
+    );
+    if (!unverifiedUser) {
+      throw new BadRequestException('Session expired, please sign up again');
+    }
+
+    // TODO: userRepo.create(unverifiedUser)
+
+    await this.authCacheRepo.deleteUnverifiedUser(dto.identifier);
+
+    return { message: 'Account verified successfully' };
   }
 }
