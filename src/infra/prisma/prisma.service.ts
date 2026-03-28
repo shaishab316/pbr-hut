@@ -9,6 +9,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { Env } from '@/config/app.config';
+import { UnSafeUserFields } from '@/common/types/safe-user.type';
 
 @Injectable()
 export class PrismaService
@@ -30,7 +31,14 @@ export class PrismaService
     });
 
     const adapter = new PrismaPg(pool);
-    super({ adapter });
+    super({
+      adapter,
+      omit: {
+        user: Object.fromEntries(
+          UnSafeUserFields.map((field) => [field, true]),
+        ),
+      },
+    });
   }
 
   async onModuleInit() {
