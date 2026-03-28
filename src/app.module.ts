@@ -1,11 +1,17 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { validate as configValidate } from './config/app.config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { validate as configValidate, type Env } from './config/app.config';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
+import { MailModule } from './common/mail/mail.module';
+import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import { MAIL_QUEUE } from './common/mail/mail.constants';
 
 @Module({
   imports: [
@@ -16,6 +22,23 @@ import { UserModule } from './modules/user/user.module';
     PrismaModule,
     UploadModule,
     RedisModule,
+    MailModule,
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        connection: {
+          url: config.get('REDIS_URL', { infer: true }),
+        },
+      }),
+    }),
+    BullBoardModule.forRoot({
+      route: '/queues',
+      adapter: ExpressAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: MAIL_QUEUE,
+      adapter: BullMQAdapter,
+    }),
     AuthModule,
     UserModule,
   ],
