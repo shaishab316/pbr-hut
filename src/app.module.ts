@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { validate as configValidate, type Env } from './config/app.config';
 import { PrismaModule } from './infra/prisma/prisma.module';
@@ -12,6 +12,7 @@ import { BullBoardModule } from '@bull-board/nestjs';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { MAIL_QUEUE } from './common/mail/mail.constants';
+import { LoggerMiddleware } from './common/middlewares';
 
 @Module({
   imports: [
@@ -43,4 +44,8 @@ import { MAIL_QUEUE } from './common/mail/mail.constants';
     UserModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+  }
+}
