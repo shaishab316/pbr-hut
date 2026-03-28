@@ -14,6 +14,7 @@ import {
   type IContactStrategy,
 } from './strategies/contact.strategy.interface';
 import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
+import { OtpModule } from '../otp/otp.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
       }),
     }),
     UserModule,
+    OtpModule,
   ],
   providers: [
     AuthService,

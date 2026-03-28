@@ -26,7 +26,7 @@ export class PhoneContactStrategy implements IContactStrategy<'phone'> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
-  async sendVerification(_dto: PhoneInput): Promise<void> {
+  async sendVerification(_dto: PhoneInput, _otp: string): Promise<void> {
     // TODO: SMS OTP
     throw new BadRequestException('Phone verification not implemented yet');
   }

@@ -15,7 +15,7 @@ export interface IContactStrategy<
   readonly contactType: T;
   getIdentifier(dto: NarrowSignUpInput<T>): string;
   findExistingUser(dto: NarrowSignUpInput<T>): Promise<SafeUser | null>;
-  sendVerification(dto: NarrowSignUpInput<T>): Promise<void>;
+  sendVerification(dto: NarrowSignUpInput<T>, otp: string): Promise<void>;
   buildContactFields(
     dto: NarrowSignUpInput<T>,
   ): Partial<Record<'email' | 'phone', string>>;

@@ -51,6 +51,11 @@ const envSchema = z.object({
     .default('7d')
     .describe('JWT token expiration time'),
 
+  OTP_SECRET: z
+    .string()
+    .min(10, 'OTP_SECRET must be at least 10 characters')
+    .describe('Base secret for OTP generation'),
+
   // Stripe Payment
   STRIPE_SECRET_KEY: z
     .string()

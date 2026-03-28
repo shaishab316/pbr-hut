@@ -32,13 +32,13 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
     return this.userRepo.findByEmail(dto.email);
   }
 
-  async sendVerification(dto: EmailInput): Promise<void> {
+  async sendVerification(dto: EmailInput, otp: string): Promise<void> {
     await this.mailQueue.add(
       MailJobs.WELCOME,
       {
         email: dto.email,
         name: dto.name,
-        otp: '123456', // TODO: real OTP
+        otp: otp,
       } satisfies WelcomeJobData,
       {
         attempts: 3,

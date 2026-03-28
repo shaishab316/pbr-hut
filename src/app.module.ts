@@ -13,6 +13,7 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { MAIL_QUEUE } from './common/mail/mail.constants';
 import { LoggerMiddleware } from './common/middlewares';
+import { OtpModule } from './modules/otp/otp.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { LoggerMiddleware } from './common/middlewares';
     }),
     AuthModule,
     UserModule,
+    OtpModule,
   ],
 })
 export class AppModule implements NestModule {
