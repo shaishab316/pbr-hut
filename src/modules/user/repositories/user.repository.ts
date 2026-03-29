@@ -1,7 +1,7 @@
 import type { SafeUser } from '@/common/types/safe-user.type';
+import { PrismaService } from '@/infra/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { PrismaService } from 'src/infra/prisma/prisma.service';
 
 @Injectable()
 export class UserRepository {
