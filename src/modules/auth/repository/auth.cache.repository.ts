@@ -38,19 +38,19 @@ export class AuthCacheRepository {
     await this.redis.del(`unverified:${identifier}`);
   }
 
-  async savePasswordResetToken(identifier: string) {
-    const token = crypto.randomUUID();
+  async saveResetPasswordNonce(userId: string): Promise<string> {
+    const nonce = crypto.randomUUID();
 
-    await this.redis.setex(`pwd-reset:${identifier}`, 600, token); //? 10 minutes
+    await this.redis.setex(`pwd-reset:${userId}`, 600, nonce); //? 10 minutes
 
-    return token;
+    return nonce;
   }
 
-  async getPasswordResetToken(identifier: string): Promise<string | null> {
-    return this.redis.get(`pwd-reset:${identifier}`);
+  async getResetPasswordNonce(userId: string): Promise<string | null> {
+    return this.redis.get(`pwd-reset:${userId}`);
   }
 
-  async deletePasswordResetToken(identifier: string): Promise<void> {
-    await this.redis.del(`pwd-reset:${identifier}`);
+  async deleteResetPasswordNonce(userId: string): Promise<void> {
+    await this.redis.del(`pwd-reset:${userId}`);
   }
 }

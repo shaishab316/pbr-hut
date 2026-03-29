@@ -11,13 +11,19 @@ import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
 import { comparePassword, hashPassword } from '@/common/helpers';
 import type { SignUpInput } from './dto/sign-up.dto';
 import { OtpService } from '../otp/otp.service';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { VerifyOtpInput } from './dto/verify-otp.dto';
 import { UserRepository } from '../user/repositories/user.repository';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginInput } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from '@/common/strategies/jwt.strategy';
-import { ForgotPasswordInput } from './dto/forgot.dto';
+import { ForgotPasswordInput } from './dto/forgot-password.dto';
+import { SafeUser } from '@/common/types/safe-user.type';
+
+export type ResetPasswordTokenPayload = {
+  sub: string; // userId
+  nonce: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -60,28 +66,42 @@ export class AuthService {
     return { message: 'Verification sent', data: { identifier } };
   }
 
-  async verifyOtp(dto: VerifyOtpDto) {
-    const isValid = this.otpService.verify(dto.otp, dto.identifier);
+  async verifyOtp(dto: VerifyOtpInput) {
+    const strategy = this.contactStrategyFactory.resolve(dto.identifierType);
+
+    const identifier = strategy.getIdentifier(dto);
+
+    const isValid = this.otpService.verify(dto.otp, identifier);
 
     if (!isValid) {
-      throw new BadRequestException('Invalid or expired OTP');
+      throw new UnauthorizedException('Invalid or expired OTP');
     }
 
     switch (dto.verifyReason) {
-      case 'register':
-        return this.verifyOtpForRegistration(dto);
-      case 'forgot-password':
-        return this.verifyOtpForPasswordReset(dto);
+      case 'register': {
+        return this.verifyOtpForRegistration(identifier);
+      }
+      case 'forgot-password': {
+        const user = await strategy.findExistingUser(dto);
+
+        if (!user) {
+          throw new UnauthorizedException(
+            'Invalid credentials, user not found',
+          );
+        }
+
+        return this.verifyOtpForPasswordReset(user);
+      }
       default:
         //? This should never happen because of the DTO validation, but we add this to satisfy TypeScript exhaustiveness check
         throw new BadRequestException('Invalid verification reason');
     }
   }
 
-  private async verifyOtpForRegistration(dto: VerifyOtpDto) {
-    const unverifiedUser = await this.authCacheRepo.getUnverifiedUser(
-      dto.identifier,
-    );
+  private async verifyOtpForRegistration(identifier: string) {
+    const unverifiedUser =
+      await this.authCacheRepo.getUnverifiedUser(identifier);
+
     if (!unverifiedUser) {
       throw new BadRequestException('Session expired, please sign up again');
     }
@@ -91,23 +111,26 @@ export class AuthService {
 
     await this.userRepo.create(userData);
 
-    await this.authCacheRepo.deleteUnverifiedUser(dto.identifier);
+    await this.authCacheRepo.deleteUnverifiedUser(identifier);
 
     return { message: 'Account verified successfully' };
   }
 
-  private async verifyOtpForPasswordReset(dto: VerifyOtpDto) {
-    const token = await this.authCacheRepo.getPasswordResetToken(
-      dto.identifier,
-    );
+  private async verifyOtpForPasswordReset(user: SafeUser) {
+    const nonce = await this.authCacheRepo.getResetPasswordNonce(user.id);
 
-    if (!token) {
+    if (!nonce) {
       throw new BadRequestException(
         'Session expired, please initiate forgot password again',
       );
     }
 
-    await this.authCacheRepo.deletePasswordResetToken(dto.identifier);
+    //! dont delete nonce from cache here, we will delete it after password reset to prevent multiple OTP verifications and ensure that the user resets the password immediately after verifying OTP
+
+    const token = this.jwtService.sign({
+      sub: user.id,
+      nonce,
+    } satisfies ResetPasswordTokenPayload);
 
     return {
       message: 'OTP verified, you can now reset your password',
@@ -194,9 +217,9 @@ export class AuthService {
 
     const identifier = strategy.getIdentifier(dto);
 
-    const token = await this.authCacheRepo.savePasswordResetToken(identifier);
+    const nonce = await this.authCacheRepo.saveResetPasswordNonce(user.id);
 
-    const otp = this.otpService.generate(token);
+    const otp = this.otpService.generate(nonce);
 
     await strategy.sendPasswordReset(user, otp);
 
