@@ -1,9 +1,9 @@
+import { UserRepository } from '@/modules/user/repositories/user.repository';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Env } from 'src/config/app.config';
-import { UserRepository } from 'src/modules/user/repositories/user.repository';
 
 export interface JwtPayload {
   sub: string;
