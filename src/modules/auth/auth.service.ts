@@ -68,7 +68,10 @@ export class AuthService {
       throw new BadRequestException('Session expired, please sign up again');
     }
 
-    await this.userRepo.create(unverifiedUser);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { identifierType, ...userData } = unverifiedUser;
+
+    await this.userRepo.create(userData);
 
     await this.authCacheRepo.deleteUnverifiedUser(dto.identifier);
 
