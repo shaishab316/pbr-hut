@@ -11,7 +11,7 @@ import {
   ApiResetPassword,
   ApiSignUp,
   ApiVerifyOtp,
-} from './docs/auth.docs';
+} from './docs';
 import {
   ForgotPasswordDto,
   ForgotPasswordInput,
