@@ -4,13 +4,15 @@ import {
   type UnverifiedUser,
 } from './repository/auth.cache.repository';
 import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
-import { hashPassword } from '@/common/helpers';
+import { comparePassword, hashPassword } from '@/common/helpers';
 import type { SignUpInput } from './dto/sign-up.dto';
 import { OtpService } from '../otp/otp.service';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { UserRepository } from '../user/repositories/user.repository';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginInput } from './dto/login.dto';
+import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,7 @@ export class AuthService {
     private readonly userRepo: UserRepository,
     private readonly contactStrategyFactory: ContactStrategyFactory,
     private readonly otpService: OtpService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async signUp(signUpDto: SignUpInput) {
@@ -97,10 +100,37 @@ export class AuthService {
   async login(loginDto: LoginInput) {
     const strategy = this.contactStrategyFactory.resolve(loginDto.contactType);
 
-    const user = await strategy.findExistingUser(loginDto);
+    const user = await strategy.findExistingUserWithPassword(loginDto);
 
-    if (!user) {
-      throw new BadRequestException('Invalid credentials');
+    if (!user || !user.passwordHash) {
+      throw new BadRequestException('Invalid credentials, user not found');
     }
+
+    const isPasswordValid = await comparePassword(
+      loginDto.password,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Invalid credentials, incorrect password');
+    }
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      identifier: strategy.getIdentifier(loginDto),
+    };
+
+    const token = this.jwtService.sign(payload);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...safeUser } = user;
+
+    return {
+      message: 'Login successful',
+      data: {
+        token,
+        user: safeUser,
+      },
+    };
   }
 }

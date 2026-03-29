@@ -30,6 +30,10 @@ export class PhoneContactStrategy implements IContactStrategy<'phone'> {
     return this.userRepo.findByPhone(dto.phone);
   }
 
+  async findExistingUserWithPassword(dto: PhoneInput) {
+    return this.userRepo.findByPhoneWithPassword(dto.phone);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
   async sendVerification(_dto: UnverifiedUser, _otp: string): Promise<void> {
     // TODO: SMS OTP

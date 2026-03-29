@@ -7,7 +7,7 @@ import { UserRepository } from 'src/modules/user/repositories/user.repository';
 
 export interface JwtPayload {
   sub: string;
-  email: string;
+  identifier: string;
 }
 
 @Injectable()

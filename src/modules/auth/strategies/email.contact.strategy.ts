@@ -38,7 +38,7 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
   }
 
   async findExistingUserWithPassword(dto: EmailInput) {
-    return this.userRepo.findByEmail(dto.email);
+    return this.userRepo.findByEmailWithPassword(dto.email);
   }
 
   async sendVerification(user: UnverifiedUser, otp: string): Promise<void> {
