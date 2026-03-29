@@ -1,8 +1,10 @@
 import { EmailContactStrategy } from '../strategies/email.contact.strategy';
 import { UserRepository } from '../../user/repositories/user.repository';
+import { MAIL_QUEUE } from '@/common/mail/mail.constants';
 
 const mockUserRepo = {
   findByEmail: jest.fn(),
+  findByEmailWithPassword: jest.fn(),
 };
 
 const mockMailQueue = {
@@ -25,6 +27,19 @@ const unverifiedUser = {
   identifierType: 'email' as const,
 };
 
+const mockSafeUser = {
+  id: 'user-id-1',
+  name: 'John',
+  email: 'john@example.com',
+  phone: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  isActive: true,
+  role: 'CUSTOMER' as const,
+};
+
+const QUEUE_OPTIONS = expect.objectContaining({ attempts: expect.any(Number) });
+
 describe('EmailContactStrategy', () => {
   let strategy: EmailContactStrategy;
 
@@ -36,17 +51,17 @@ describe('EmailContactStrategy', () => {
     jest.clearAllMocks();
   });
 
-  it('should return email as identifier', () => {
+  it('returns email as identifier', () => {
     expect(strategy.getIdentifier(emailDto)).toBe('john@example.com');
   });
 
-  it('should build contact fields', () => {
+  it('builds contact fields with email only', () => {
     expect(strategy.buildContactFields(emailDto)).toEqual({
       email: 'john@example.com',
     });
   });
 
-  it('should find existing user by email', async () => {
+  it('finds existing user by email', async () => {
     mockUserRepo.findByEmail.mockResolvedValue({ id: 'uuid' });
 
     const result = await strategy.findExistingUser(emailDto);
@@ -55,19 +70,31 @@ describe('EmailContactStrategy', () => {
     expect(result).toEqual({ id: 'uuid' });
   });
 
-  it('should queue a welcome email with OTP', async () => {
-    await strategy.sendVerification(
-      {
-        ...unverifiedUser,
-        identifierType: 'email',
-      },
-      '123456',
-    );
+  it('queues verification email containing OTP in body', async () => {
+    await strategy.sendVerification(unverifiedUser, '123456');
 
     expect(mockMailQueue.add).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ email: 'john@example.com', otp: '123456' }),
-      expect.any(Object),
+      MAIL_QUEUE,
+      expect.objectContaining({
+        email: 'john@example.com',
+        subject: expect.any(String),
+        body: expect.stringContaining('123456'),
+      }),
+      QUEUE_OPTIONS,
+    );
+  });
+
+  it('queues password reset email containing OTP in body', async () => {
+    await strategy.sendPasswordReset(mockSafeUser, '654321');
+
+    expect(mockMailQueue.add).toHaveBeenCalledWith(
+      MAIL_QUEUE,
+      expect.objectContaining({
+        email: 'john@example.com',
+        subject: expect.any(String),
+        body: expect.stringContaining('654321'),
+      }),
+      QUEUE_OPTIONS,
     );
   });
 });
