@@ -4,7 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import type { Env } from 'src/config/app.config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtStrategy } from '@/common/strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { AuthCacheRepository } from './repository/auth.cache.repository';
 import { EmailContactStrategy } from './strategies/email.contact.strategy';

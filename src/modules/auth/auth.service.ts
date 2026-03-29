@@ -16,7 +16,7 @@ import { UserRepository } from '../user/repositories/user.repository';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginInput } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { JwtPayload } from './strategies/jwt.strategy';
+import { JwtPayload } from '@/common/strategies/jwt.strategy';
 
 @Injectable()
 export class AuthService {
