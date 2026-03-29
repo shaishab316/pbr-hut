@@ -37,4 +37,12 @@ export class AuthCacheRepository {
   async deleteUnverifiedUser(identifier: string): Promise<void> {
     await this.redis.del(`unverified:${identifier}`);
   }
+
+  async savePasswordResetToken(identifier: string) {
+    const token = crypto.randomUUID();
+
+    await this.redis.setex(`pwd-reset:${identifier}`, 600, token); //? 10 minutes
+
+    return token;
+  }
 }

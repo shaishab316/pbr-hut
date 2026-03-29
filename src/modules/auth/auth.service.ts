@@ -17,6 +17,7 @@ import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginInput } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from '@/common/strategies/jwt.strategy';
+import { ForgotPasswordInput } from './dto/forgot.dto';
 
 @Injectable()
 export class AuthService {
@@ -147,6 +148,29 @@ export class AuthService {
         token,
         user: safeUser,
       },
+    };
+  }
+
+  async forgotPassword(dto: ForgotPasswordInput) {
+    const strategy = this.contactStrategyFactory.resolve(dto.identifierType);
+
+    const user = await strategy.findExistingUser(dto);
+
+    if (!user) {
+      throw new BadRequestException('User not found with this identifier');
+    }
+
+    const identifier = strategy.getIdentifier(dto);
+
+    const token = await this.authCacheRepo.savePasswordResetToken(identifier);
+
+    const otp = this.otpService.generate(token);
+
+    await strategy.sendPasswordReset(user, otp);
+
+    return {
+      message: 'Password reset OTP sent',
+      data: { identifier },
     };
   }
 }

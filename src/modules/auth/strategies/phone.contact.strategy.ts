@@ -5,6 +5,7 @@ import {
   NarrowLoginInput,
 } from './contact.strategy.interface';
 import type { UnverifiedUser } from '../repository/auth.cache.repository';
+import { SafeUser } from '@/common/types/safe-user.type';
 
 type PhoneInput = NarrowLoginInput<'phone'>;
 
@@ -38,5 +39,11 @@ export class PhoneContactStrategy implements IContactStrategy<'phone'> {
   async sendVerification(_dto: UnverifiedUser, _otp: string): Promise<void> {
     // TODO: SMS OTP
     throw new BadRequestException('Phone verification not implemented yet');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
+  async sendPasswordReset(user: SafeUser, otp: string): Promise<void> {
+    // TODO: SMS OTP
+    throw new BadRequestException('Phone password reset not implemented yet');
   }
 }

@@ -10,6 +10,7 @@ import {
   ApiSignUp,
   ApiVerifyOtp,
 } from './docs/auth.docs';
+import { ForgotPasswordDto, ForgotPasswordInput } from './dto/forgot.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -41,5 +42,13 @@ export class AuthController {
   @HttpCode(200)
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto as unknown as SignUpInput);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(
+      dto as unknown as ForgotPasswordInput,
+    );
   }
 }
