@@ -3,43 +3,23 @@ import {
   ApiBadRequestResponse,
   ApiBody,
   ApiExtraModels,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { EmailSignUpModel } from './models/email-signup.model';
-import { PhoneSignUpModel } from './models/phone-signup.model';
-import { EmailLoginModel } from './models/email-login.model';
-import { PhoneLoginModel } from './models/phone-login.model';
-
-const SignUpSchema = () => ({
-  oneOf: [
-    { $ref: getSchemaPath(EmailSignUpModel) },
-    { $ref: getSchemaPath(PhoneSignUpModel) },
-  ],
-  discriminator: {
-    propertyName: 'identifierType',
-    mapping: {
-      email: getSchemaPath(EmailSignUpModel),
-      phone: getSchemaPath(PhoneSignUpModel),
-    },
-  },
-});
-
-const LoginSchema = () => ({
-  oneOf: [
-    { $ref: getSchemaPath(EmailLoginModel) },
-    { $ref: getSchemaPath(PhoneLoginModel) },
-  ],
-  discriminator: {
-    propertyName: 'identifierType',
-    mapping: {
-      email: getSchemaPath(EmailLoginModel),
-      phone: getSchemaPath(PhoneLoginModel),
-    },
-  },
-});
+import { EmailSignUpModel, PhoneSignUpModel } from './models/signup.model';
+import { EmailLoginModel, PhoneLoginModel } from './models/login.model';
+import {
+  VerifyOtpEmailRequest,
+  VerifyOtpPhoneRequest,
+} from './models/verifyotp.model';
+import {
+  ForgotPasswordEmailRequest,
+  ForgotPasswordPhoneRequest,
+} from './models/forgot-password.model';
+import { ResetPasswordRequest } from './models/reset-password.model';
 
 export const ApiSignUp = () =>
   applyDecorators(
@@ -49,7 +29,21 @@ export const ApiSignUp = () =>
         'Sends OTP to email or phone. Discriminated by `identifierType`.',
     }),
     ApiExtraModels(EmailSignUpModel, PhoneSignUpModel),
-    ApiBody({ schema: SignUpSchema() }),
+    ApiBody({
+      schema: {
+        oneOf: [
+          { $ref: getSchemaPath(EmailSignUpModel) },
+          { $ref: getSchemaPath(PhoneSignUpModel) },
+        ],
+        discriminator: {
+          propertyName: 'identifierType',
+          mapping: {
+            email: getSchemaPath(EmailSignUpModel),
+            phone: getSchemaPath(PhoneSignUpModel),
+          },
+        },
+      },
+    }),
     ApiOkResponse({
       description: 'OTP sent successfully',
       schema: {
@@ -84,7 +78,21 @@ export const ApiLogin = () =>
         'Authenticate with email or phone + password. Discriminated by `identifierType`.',
     }),
     ApiExtraModels(EmailLoginModel, PhoneLoginModel),
-    ApiBody({ schema: LoginSchema() }),
+    ApiBody({
+      schema: {
+        oneOf: [
+          { $ref: getSchemaPath(EmailLoginModel) },
+          { $ref: getSchemaPath(PhoneLoginModel) },
+        ],
+        discriminator: {
+          propertyName: 'identifierType',
+          mapping: {
+            email: getSchemaPath(EmailLoginModel),
+            phone: getSchemaPath(PhoneLoginModel),
+          },
+        },
+      },
+    }),
     ApiOkResponse({
       description: 'Login successful',
       schema: {
@@ -94,7 +102,7 @@ export const ApiLogin = () =>
           message: 'Login successful',
           data: {
             token:
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMUtNVllTSEZXRzBHUzNBSlNFOEtHMVFTMCIsImlkZW50aWZpZXIiOiJqb2huQGV4YW1wbGUuY29tIiwiaWF0IjoxNzc0NzU5NzYyLCJleHAiOjE3NzczNTE3NjJ9.2t021l5TuEPSr9aDghih5cKGsgVrmGPRbf-2GDwi2Eo',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxxxxxxxxxxxxxxxx.2t021l5TuEPSr9aDghih5cKGsgVrmGPRbf-2GDwi2Eo',
             user: {
               id: '01KMVYSHFWG0GS3AJSE8KG1QS0',
               email: 'john@example.com',
@@ -144,13 +152,26 @@ export const ApiVerifyOtp = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Verify OTP',
-      description: 'Verify the 6-digit OTP sent during registration.',
+      description:
+        'Verify the 6-digit OTP sent during registration or password reset. ' +
+        'Supports email and phone identifiers via `identifierType` discriminator.',
     }),
     ApiBody({
       schema: {
-        example: { identifier: 'john@example.com', otp: '123456' },
+        oneOf: [
+          { $ref: getSchemaPath(VerifyOtpEmailRequest) },
+          { $ref: getSchemaPath(VerifyOtpPhoneRequest) },
+        ],
+        discriminator: {
+          propertyName: 'identifierType',
+          mapping: {
+            email: getSchemaPath(VerifyOtpEmailRequest),
+            phone: getSchemaPath(VerifyOtpPhoneRequest),
+          },
+        },
       },
     }),
+    ApiExtraModels(VerifyOtpEmailRequest, VerifyOtpPhoneRequest),
     ApiOkResponse({
       description: 'Account verified successfully',
       schema: {
@@ -206,6 +227,107 @@ export const ApiResendOtp = () =>
           message: 'Session expired, please sign up again',
           error: 'Bad Request',
           statusCode: 400,
+        },
+      },
+    }),
+  );
+
+export const ApiForgotPassword = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Forgot Password',
+      description:
+        'Initiates the password reset flow by sending a 6-digit OTP to the provided ' +
+        'email or phone number. Use `identifierType` to select the variant.',
+    }),
+    ApiExtraModels(ForgotPasswordEmailRequest, ForgotPasswordPhoneRequest),
+    ApiBody({
+      schema: {
+        oneOf: [
+          { $ref: getSchemaPath(ForgotPasswordEmailRequest) },
+          { $ref: getSchemaPath(ForgotPasswordPhoneRequest) },
+        ],
+        discriminator: {
+          propertyName: 'identifierType',
+          mapping: {
+            email: getSchemaPath(ForgotPasswordEmailRequest),
+            phone: getSchemaPath(ForgotPasswordPhoneRequest),
+          },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: 'OTP sent successfully',
+      schema: {
+        example: {
+          success: true,
+          statusCode: 200,
+          message: 'OTP sent successfully. Please check your email/phone.',
+          data: null,
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Validation error — invalid email/phone format',
+      schema: {
+        example: {
+          message: 'Invalid email address',
+          error: 'Bad Request',
+          statusCode: 400,
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'No account found for the given identifier',
+      schema: {
+        example: {
+          message: 'No account found with this email/phone',
+          error: 'Not Found',
+          statusCode: 404,
+        },
+      },
+    }),
+  );
+
+export const ApiResetPassword = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Reset Password',
+      description:
+        'Resets the user password using the short-lived token issued ' +
+        'after successful OTP verification. Token is single-use and expires shortly.',
+    }),
+    ApiExtraModels(ResetPasswordRequest),
+    ApiBody({ type: ResetPasswordRequest }),
+    ApiOkResponse({
+      description: 'Password reset successfully',
+      schema: {
+        example: {
+          success: true,
+          statusCode: 200,
+          message: 'Password has been reset successfully.',
+          data: null,
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Validation error — password too short/long or missing token',
+      schema: {
+        example: {
+          message: 'Password must be at least 8 characters long',
+          error: 'Bad Request',
+          statusCode: 400,
+        },
+      },
+    }),
+    ApiUnauthorizedResponse({
+      description: 'Invalid or expired reset token',
+      schema: {
+        example: {
+          message: 'Reset token is invalid or has expired',
+          error: 'Unauthorized',
+          statusCode: 401,
         },
       },
     }),

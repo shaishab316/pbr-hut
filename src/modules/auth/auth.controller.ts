@@ -5,8 +5,10 @@ import { VerifyOtpDto, VerifyOtpInput } from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginDto } from './dto/login.dto';
 import {
+  ApiForgotPassword,
   ApiLogin,
   ApiResendOtp,
+  ApiResetPassword,
   ApiSignUp,
   ApiVerifyOtp,
 } from './docs/auth.docs';
@@ -48,6 +50,7 @@ export class AuthController {
     return this.authService.login(dto as unknown as SignUpInput);
   }
 
+  @ApiForgotPassword()
   @Post('forgot-password')
   @HttpCode(200)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -56,6 +59,7 @@ export class AuthController {
     );
   }
 
+  @ApiResetPassword()
   @Post('reset-password')
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
