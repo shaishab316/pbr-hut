@@ -62,10 +62,23 @@ export class AuthService {
 
   async verifyOtp(dto: VerifyOtpDto) {
     const isValid = this.otpService.verify(dto.otp, dto.identifier);
+
     if (!isValid) {
       throw new BadRequestException('Invalid or expired OTP');
     }
 
+    switch (dto.verifyReason) {
+      case 'register':
+        return this.verifyOtpForRegistration(dto);
+      case 'forgot-password':
+        return this.verifyOtpForPasswordReset(dto);
+      default:
+        //? This should never happen because of the DTO validation, but we add this to satisfy TypeScript exhaustiveness check
+        throw new BadRequestException('Invalid verification reason');
+    }
+  }
+
+  private async verifyOtpForRegistration(dto: VerifyOtpDto) {
     const unverifiedUser = await this.authCacheRepo.getUnverifiedUser(
       dto.identifier,
     );
@@ -81,6 +94,25 @@ export class AuthService {
     await this.authCacheRepo.deleteUnverifiedUser(dto.identifier);
 
     return { message: 'Account verified successfully' };
+  }
+
+  private async verifyOtpForPasswordReset(dto: VerifyOtpDto) {
+    const token = await this.authCacheRepo.getPasswordResetToken(
+      dto.identifier,
+    );
+
+    if (!token) {
+      throw new BadRequestException(
+        'Session expired, please initiate forgot password again',
+      );
+    }
+
+    await this.authCacheRepo.deletePasswordResetToken(dto.identifier);
+
+    return {
+      message: 'OTP verified, you can now reset your password',
+      data: { token },
+    };
   }
 
   private async sendOtp(user: UnverifiedUser) {

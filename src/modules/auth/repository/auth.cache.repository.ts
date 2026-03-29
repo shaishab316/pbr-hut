@@ -45,4 +45,12 @@ export class AuthCacheRepository {
 
     return token;
   }
+
+  async getPasswordResetToken(identifier: string): Promise<string | null> {
+    return this.redis.get(`pwd-reset:${identifier}`);
+  }
+
+  async deletePasswordResetToken(identifier: string): Promise<void> {
+    await this.redis.del(`pwd-reset:${identifier}`);
+  }
 }
