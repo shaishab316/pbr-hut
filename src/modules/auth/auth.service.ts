@@ -19,6 +19,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from '@/common/strategies/jwt.strategy';
 import { ForgotPasswordInput } from './dto/forgot-password.dto';
 import { SafeUser } from '@/common/types/safe-user.type';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 export type ResetPasswordTokenPayload = {
   sub: string; // userId
@@ -227,5 +228,37 @@ export class AuthService {
       message: 'Password reset OTP sent',
       data: { identifier },
     };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const payload: ResetPasswordTokenPayload = this.jwtService.verify(
+      dto.token,
+    );
+
+    if (!payload.nonce) {
+      throw new BadRequestException('Invalid token payload');
+    }
+
+    const nonceInCache = await this.authCacheRepo.getResetPasswordNonce(
+      payload.sub,
+    );
+
+    if (nonceInCache !== payload.nonce) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    const user = await this.userRepo.findById(payload.sub);
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    await this.userRepo.update(user.id, {
+      passwordHash: await hashPassword(dto.newPassword),
+    });
+
+    await this.authCacheRepo.deleteResetPasswordNonce(user.id);
+
+    return { message: 'Password reset successful' };
   }
 }

@@ -16,6 +16,13 @@ export class UserRepository {
     });
   }
 
+  async update(userId: string, data: Prisma.UserUpdateInput) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+  }
+
   async findByEmail(email: string): Promise<SafeUser | null> {
     return this.prisma.user.findUnique({
       where: { email },

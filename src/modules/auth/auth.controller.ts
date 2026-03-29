@@ -14,6 +14,7 @@ import {
   ForgotPasswordDto,
   ForgotPasswordInput,
 } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -53,5 +54,11 @@ export class AuthController {
     return this.authService.forgotPassword(
       dto as unknown as ForgotPasswordInput,
     );
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }
