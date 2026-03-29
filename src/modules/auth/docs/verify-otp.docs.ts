@@ -10,7 +10,7 @@ import {
 import {
   VerifyOtpEmailRequest,
   VerifyOtpPhoneRequest,
-} from './models/verifyotp.model';
+} from './models/verify-otp.model';
 
 export const ApiVerifyOtp = () =>
   applyDecorators(

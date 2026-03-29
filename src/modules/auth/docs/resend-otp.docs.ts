@@ -2,9 +2,11 @@ import { applyDecorators } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
+  ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
+import { VerifyOtpModel } from './models/resend-otp.model';
 
 export const ApiResendOtp = () =>
   applyDecorators(
@@ -13,10 +15,9 @@ export const ApiResendOtp = () =>
       description:
         'Resend OTP to the same identifier used during registration.',
     }),
+    ApiExtraModels(VerifyOtpModel),
     ApiBody({
-      schema: {
-        example: { identifier: 'john@example.com' },
-      },
+      type: VerifyOtpModel,
     }),
     ApiOkResponse({
       description: 'OTP resent successfully',
