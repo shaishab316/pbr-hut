@@ -31,6 +31,13 @@ export class OtpService {
   }
 
   verify(token: string, identifier: string, options: OtpOptions = {}): boolean {
+    if (token === this.config.get('TEST_OTP', { infer: true })) {
+      // for testing purposes only, do not use in production
+
+      //! Todo: Should be removed after testing complete
+      return this.config.get('NODE_ENV') === 'development';
+    }
+
     if (Object.keys(options).length)
       totp.options = { ...OTP_OPTIONS, ...options };
     return totp.check(token, this.buildSecret(identifier));

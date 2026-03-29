@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   AuthCacheRepository,
   type UnverifiedUser,
@@ -52,7 +56,7 @@ export class AuthService {
 
     await this.sendOtp(unverifiedUser);
 
-    return { message: 'Verification sent', identifier };
+    return { message: 'Verification sent', data: { identifier } };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
@@ -99,7 +103,10 @@ export class AuthService {
 
     await this.sendOtp(unverifiedUser);
 
-    return { message: 'Verification resent' };
+    return {
+      message: 'Verification resent',
+      data: { identifier: dto.identifier },
+    };
   }
 
   async login(loginDto: LoginInput) {
@@ -110,7 +117,7 @@ export class AuthService {
     const user = await strategy.findExistingUserWithPassword(loginDto);
 
     if (!user || !user.passwordHash) {
-      throw new BadRequestException('Invalid credentials, user not found');
+      throw new UnauthorizedException('Invalid credentials, user not found');
     }
 
     const isPasswordValid = await comparePassword(
@@ -119,7 +126,9 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new BadRequestException('Invalid credentials, incorrect password');
+      throw new UnauthorizedException(
+        'Invalid credentials, incorrect password',
+      );
     }
 
     const payload: JwtPayload = {

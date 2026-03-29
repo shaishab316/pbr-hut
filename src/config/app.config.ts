@@ -122,6 +122,11 @@ const envSchema = z.object({
     .enum(['error', 'warn', 'log', 'debug', 'verbose'])
     .default('log')
     .describe('Logging level'),
+
+  TEST_OTP: z
+    .string()
+    .describe('A fixed OTP for testing purposes, do not use in production')
+    .default('123456'),
 });
 
 export const validate = (config: Record<string, unknown>) => {
