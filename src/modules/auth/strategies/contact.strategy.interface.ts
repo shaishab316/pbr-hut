@@ -1,5 +1,6 @@
-import { SafeUser } from '@/common/types/safe-user.type';
+import type { SafeUser } from '@/common/types/safe-user.type';
 import type { SignUpInput } from '../dto/sign-up.dto';
+import type { UnverifiedUser } from '../repository/auth.cache.repository';
 
 export const CONTACT_STRATEGIES = Symbol('CONTACT_STRATEGIES');
 
@@ -14,9 +15,8 @@ export interface IContactStrategy<
 > {
   readonly contactType: T;
   getIdentifier(dto: NarrowSignUpInput<T>): string;
+  getIdentifierFromCache(user: UnverifiedUser): string;
   findExistingUser(dto: NarrowSignUpInput<T>): Promise<SafeUser | null>;
-  sendVerification(dto: NarrowSignUpInput<T>, otp: string): Promise<void>;
-  buildContactFields(
-    dto: NarrowSignUpInput<T>,
-  ): Partial<Record<'email' | 'phone', string>>;
+  sendVerification(dto: UnverifiedUser, otp: string): Promise<void>;
+  buildContactFields(dto: NarrowSignUpInput<T>): Partial<Record<T, string>>;
 }

@@ -8,6 +8,7 @@ import {
   IContactStrategy,
   NarrowSignUpInput,
 } from './contact.strategy.interface';
+import type { UnverifiedUser } from '../repository/auth.cache.repository';
 
 type EmailInput = NarrowSignUpInput<'email'>;
 
@@ -24,6 +25,10 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
     return dto.email;
   }
 
+  getIdentifierFromCache(user: UnverifiedUser) {
+    return user.email!;
+  }
+
   buildContactFields(dto: EmailInput) {
     return { email: dto.email };
   }
@@ -32,13 +37,13 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
     return this.userRepo.findByEmail(dto.email);
   }
 
-  async sendVerification(dto: EmailInput, otp: string): Promise<void> {
+  async sendVerification(user: UnverifiedUser, otp: string): Promise<void> {
     await this.mailQueue.add(
       MailJobs.WELCOME,
       {
-        email: dto.email,
-        name: dto.name,
-        otp: otp,
+        email: user.email!,
+        name: user.name!,
+        otp,
       } satisfies WelcomeJobData,
       {
         attempts: 3,

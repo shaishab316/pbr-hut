@@ -4,6 +4,7 @@ import {
   IContactStrategy,
   NarrowSignUpInput,
 } from './contact.strategy.interface';
+import type { UnverifiedUser } from '../repository/auth.cache.repository';
 
 type PhoneInput = NarrowSignUpInput<'phone'>;
 
@@ -14,19 +15,23 @@ export class PhoneContactStrategy implements IContactStrategy<'phone'> {
   constructor(private readonly userRepo: UserRepository) {}
 
   getIdentifier(dto: PhoneInput): string {
-    return dto.phone; // ✅
+    return dto.phone;
+  }
+
+  getIdentifierFromCache(user: UnverifiedUser) {
+    return user.phone!;
   }
 
   buildContactFields(dto: PhoneInput) {
-    return { phone: dto.phone }; // ✅
+    return { phone: dto.phone };
   }
 
   async findExistingUser(dto: PhoneInput) {
-    return this.userRepo.findByPhone(dto.phone); // ✅
+    return this.userRepo.findByPhone(dto.phone);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
-  async sendVerification(_dto: PhoneInput, _otp: string): Promise<void> {
+  async sendVerification(_dto: UnverifiedUser, _otp: string): Promise<void> {
     // TODO: SMS OTP
     throw new BadRequestException('Phone verification not implemented yet');
   }

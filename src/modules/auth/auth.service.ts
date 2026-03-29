@@ -9,6 +9,7 @@ import type { SignUpInput } from './dto/sign-up.dto';
 import { OtpService } from '../otp/otp.service';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { UserRepository } from '../user/repositories/user.repository';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 
 @Injectable()
 export class AuthService {
@@ -36,12 +37,14 @@ export class AuthService {
       ...strategy.buildContactFields(signUpDto),
       passwordHash: await hashPassword(signUpDto.password),
       createdAt: new Date(),
+
+      //? We need this to know which strategy to use when resending OTP or verifying from cache
+      contactType: signUpDto.contactType,
     } satisfies UnverifiedUser;
 
     await this.authCacheRepo.saveUnverifiedUser(identifier, unverifiedUser);
 
-    const otp = this.otpService.generate(identifier);
-    await strategy.sendVerification(signUpDto, otp);
+    await this.sendOtp(unverifiedUser);
 
     return { message: 'Verification sent', identifier };
   }
@@ -64,5 +67,29 @@ export class AuthService {
     await this.authCacheRepo.deleteUnverifiedUser(dto.identifier);
 
     return { message: 'Account verified successfully' };
+  }
+
+  private async sendOtp(user: UnverifiedUser) {
+    const strategy = this.contactStrategyFactory.resolve(user.contactType);
+
+    const identifier = strategy.getIdentifierFromCache(user);
+
+    const otp = this.otpService.generate(identifier);
+
+    await strategy.sendVerification(user, otp);
+  }
+
+  async resendOtp(dto: ResendOtpDto) {
+    const unverifiedUser = await this.authCacheRepo.getUnverifiedUser(
+      dto.identifier,
+    );
+
+    if (!unverifiedUser) {
+      throw new BadRequestException('Session expired, please sign up again');
+    }
+
+    await this.sendOtp(unverifiedUser);
+
+    return { message: 'Verification resent' };
   }
 }
