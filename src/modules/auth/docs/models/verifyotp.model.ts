@@ -16,7 +16,7 @@ class VerifyOtpBaseModel {
     default: 'register',
     example: 'register',
   })
-  verifyReason!: 'register' | 'forgot-password';
+  flow!: 'register' | 'forgot-password';
 }
 
 export class VerifyOtpEmailRequest extends VerifyOtpBaseModel {

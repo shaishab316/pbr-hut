@@ -78,7 +78,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired OTP');
     }
 
-    switch (dto.verifyReason) {
+    switch (dto.flow) {
       case 'register': {
         return this.verifyOtpForRegistration(identifier);
       }

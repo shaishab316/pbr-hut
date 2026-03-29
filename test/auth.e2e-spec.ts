@@ -289,7 +289,7 @@ describe('Auth (e2e)', () => {
       identifierType: 'email',
       email: EMAIL,
       otp: OTP,
-      verifyReason: 'register',
+      flow: 'register',
     };
 
     describe('OTP validation', () => {
@@ -305,7 +305,7 @@ describe('Auth (e2e)', () => {
       });
     });
 
-    describe('verifyReason: register', () => {
+    describe('flow: register', () => {
       beforeEach(() => mockOtpService.verify.mockReturnValue(true));
 
       it('200 – verifies OTP, creates user, clears session', async () => {
@@ -337,8 +337,8 @@ describe('Auth (e2e)', () => {
       });
     });
 
-    describe('verifyReason: forgot-password', () => {
-      const payload = { ...basePayload, verifyReason: 'forgot-password' };
+    describe('flow: forgot-password', () => {
+      const payload = { ...basePayload, flow: 'forgot-password' };
 
       beforeEach(() => mockOtpService.verify.mockReturnValue(true));
 
@@ -395,10 +395,10 @@ describe('Auth (e2e)', () => {
           .expect(400);
       });
 
-      it('400 – invalid verifyReason', async () => {
+      it('400 – invalid flow', async () => {
         await request(app.getHttpServer())
           .post(url)
-          .send({ ...basePayload, verifyReason: 'unknown-reason' })
+          .send({ ...basePayload, flow: 'unknown-reason' })
           .expect(400);
       });
 

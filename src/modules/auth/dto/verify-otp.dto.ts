@@ -29,8 +29,8 @@ const VerifyOtpSchema = z
         .length(6, 'OTP should be 6 digits')
         .describe('6-digit one-time password'),
 
-      //? The verifyReason field indicates the context in which the OTP is being verified, allowing the backend to handle different verification flows (e.g., registration vs. password reset) appropriately.
-      verifyReason: z
+      //? The flow field indicates the context in which the OTP is being verified, allowing the backend to handle different verification flows (e.g., registration vs. password reset) appropriately.
+      flow: z
         .enum(['register', 'forgot-password'])
         .default('register')
         .describe('Reason for OTP verification'),

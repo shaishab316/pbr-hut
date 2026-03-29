@@ -160,15 +160,15 @@ describe('AuthService', () => {
         mockOtpService.verify.mockReturnValue(false);
 
         await expect(
-          service.verifyOtp({ ...emailDto, verifyReason: 'register' }),
+          service.verifyOtp({ ...emailDto, flow: 'register' }),
         ).rejects.toThrow(new UnauthorizedException('Invalid or expired OTP'));
 
         expect(mockOtpService.verify).toHaveBeenCalledWith(OTP, IDENTIFIER);
       });
     });
 
-    describe('verifyReason: register', () => {
-      const dto: VerifyOtpInput = { ...emailDto, verifyReason: 'register' };
+    describe('flow: register', () => {
+      const dto: VerifyOtpInput = { ...emailDto, flow: 'register' };
 
       beforeEach(() => mockOtpService.verify.mockReturnValue(true));
 
@@ -203,10 +203,10 @@ describe('AuthService', () => {
       });
     });
 
-    describe('verifyReason: forgot-password', () => {
+    describe('flow: forgot-password', () => {
       const dto: VerifyOtpInput = {
         ...emailDto,
-        verifyReason: 'forgot-password',
+        flow: 'forgot-password',
       };
 
       beforeEach(() => mockOtpService.verify.mockReturnValue(true));
@@ -257,7 +257,7 @@ describe('AuthService', () => {
           identifierType: 'phone',
           phone: '+8801712345678',
           otp: OTP,
-          verifyReason: 'register',
+          flow: 'register',
         };
 
         mockOtpService.verify.mockReturnValue(false);

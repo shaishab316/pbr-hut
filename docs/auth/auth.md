@@ -23,8 +23,8 @@
       - [Errors](#errors)
     - [4.2 `POST /auth/verify-otp`](#42-post-authverify-otp)
       - [Request](#request-1)
-      - [Response `200` — when `verifyReason = "register"`](#response-200--when-verifyreason--register)
-      - [Response `200` — when `verifyReason = "forgot-password"`](#response-200--when-verifyreason--forgot-password)
+      - [Response `200` — when `flow = "register"`](#response-200--when-flow--register)
+      - [Response `200` — when `flow = "forgot-password"`](#response-200--when-flow--forgot-password)
       - [Errors](#errors-1)
     - [4.3 `POST /auth/resend-otp`](#43-post-authresend-otp)
       - [Request](#request-2)
@@ -112,7 +112,7 @@ Client                          Server                         Redis / DB
   │                               │                               │
   │── POST /auth/verify-otp ─────►│                               │
   │   { email, otp,               │                               │
-  │     verifyReason: "register" }│                               │
+  │     flow: "register" }│                               │
   │                               │── otpService.verify() ────────│
   │                               │── getUnverifiedUser() ───────►│
   │                               │◄─ unverifiedUser ─────────────│
@@ -180,7 +180,7 @@ Client                          Server                           Redis
   │  STEP 2 ────────────────────────────────────────────────────── │
   │── POST /auth/verify-otp ──────►│                               │
   │   { email, otp,                │── otpService.verify(otp,      │
-  │     verifyReason:              │     identifier) ──────────────│
+  │     flow:              │     identifier) ──────────────│
   │     "forgot-password" }        │── findExistingUser()          │
   │                                │── getResetPasswordNonce() ───►│
   │                                │── jwtService.sign(            │
@@ -266,7 +266,7 @@ Registers a new user. Sends an OTP to the provided contact. The user is **not pe
 
 ### 4.2 `POST /auth/verify-otp`
 
-Verifies a 6-digit OTP. Behaviour differs based on `verifyReason`.
+Verifies a 6-digit OTP. Behaviour differs based on `flow`.
 
 #### Request
 
@@ -276,7 +276,7 @@ Verifies a 6-digit OTP. Behaviour differs based on `verifyReason`.
   "identifierType": "email",
   "email": "john@example.com",
   "otp": "482910",
-  "verifyReason": "register"
+  "flow": "register"
 }
 
 // Forgot-password verification
@@ -284,7 +284,7 @@ Verifies a 6-digit OTP. Behaviour differs based on `verifyReason`.
   "identifierType": "email",
   "email": "john@example.com",
   "otp": "193847",
-  "verifyReason": "forgot-password"
+  "flow": "forgot-password"
 }
 ```
 
@@ -293,9 +293,9 @@ Verifies a 6-digit OTP. Behaviour differs based on `verifyReason`.
 | `identifierType` | `"email" \| "phone"` | defaults to `"email"` |
 | `email` / `phone` | `string` | same rules as register |
 | `otp` | `string` | exactly 6 digits |
-| `verifyReason` | `"register" \| "forgot-password"` | defaults to `"register"` |
+| `flow` | `"register" \| "forgot-password"` | defaults to `"register"` |
 
-#### Response `200` — when `verifyReason = "register"`
+#### Response `200` — when `flow = "register"`
 
 ```json
 {
@@ -305,7 +305,7 @@ Verifies a 6-digit OTP. Behaviour differs based on `verifyReason`.
 
 User is now created in Postgres. Proceed to `POST /auth/login`.
 
-#### Response `200` — when `verifyReason = "forgot-password"`
+#### Response `200` — when `flow = "forgot-password"`
 
 ```json
 {
@@ -618,7 +618,7 @@ Follow this in order when wiring up a client (web, mobile, Postman, etc.):
 ### New User Registration
 
 - [ ] `POST /auth/register` → receive `identifier`
-- [ ] `POST /auth/verify-otp` with `verifyReason: "register"` → receive `200`
+- [ ] `POST /auth/verify-otp` with `flow: "register"` → receive `200`
 - [ ] `POST /auth/login` → receive `token` + `user`
 - [ ] Store token, attach as `Authorization: Bearer <token>` on all protected requests
 
@@ -631,7 +631,7 @@ Follow this in order when wiring up a client (web, mobile, Postman, etc.):
 
 - [ ] `POST /auth/forgot-password` → receive `identifier`
 - [ ] Ask user for OTP received on email/phone
-- [ ] `POST /auth/verify-otp` with `verifyReason: "forgot-password"` → receive `token`
+- [ ] `POST /auth/verify-otp` with `flow: "forgot-password"` → receive `token`
 - [ ] Ask user for new password
 - [ ] `POST /auth/reset-password` with `token` + `newPassword` → receive success
 - [ ] Redirect to login
