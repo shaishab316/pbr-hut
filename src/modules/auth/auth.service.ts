@@ -10,6 +10,7 @@ import { OtpService } from '../otp/otp.service';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { UserRepository } from '../user/repositories/user.repository';
 import { ResendOtpDto } from './dto/resend-otp.dto';
+import { LoginInput } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -91,5 +92,15 @@ export class AuthService {
     await this.sendOtp(unverifiedUser);
 
     return { message: 'Verification resent' };
+  }
+
+  async login(loginDto: LoginInput) {
+    const strategy = this.contactStrategyFactory.resolve(loginDto.contactType);
+
+    const user = await strategy.findExistingUser(loginDto);
+
+    if (!user) {
+      throw new BadRequestException('Invalid credentials');
+    }
   }
 }

@@ -6,11 +6,11 @@ import { WelcomeJobData } from '@/common/mail/mail.processor';
 import { UserRepository } from '../../user/repositories/user.repository';
 import {
   IContactStrategy,
-  NarrowSignUpInput,
+  NarrowLoginInput,
 } from './contact.strategy.interface';
 import type { UnverifiedUser } from '../repository/auth.cache.repository';
 
-type EmailInput = NarrowSignUpInput<'email'>;
+type EmailInput = NarrowLoginInput<'email'>;
 
 @Injectable()
 export class EmailContactStrategy implements IContactStrategy<'email'> {
@@ -34,6 +34,10 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
   }
 
   async findExistingUser(dto: EmailInput) {
+    return this.userRepo.findByEmail(dto.email);
+  }
+
+  async findExistingUserWithPassword(dto: EmailInput) {
     return this.userRepo.findByEmail(dto.email);
   }
 

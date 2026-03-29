@@ -2,11 +2,11 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { UserRepository } from '../../user/repositories/user.repository';
 import {
   IContactStrategy,
-  NarrowSignUpInput,
+  NarrowLoginInput,
 } from './contact.strategy.interface';
 import type { UnverifiedUser } from '../repository/auth.cache.repository';
 
-type PhoneInput = NarrowSignUpInput<'phone'>;
+type PhoneInput = NarrowLoginInput<'phone'>;
 
 @Injectable()
 export class PhoneContactStrategy implements IContactStrategy<'phone'> {
