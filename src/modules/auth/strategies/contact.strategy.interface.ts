@@ -5,16 +5,16 @@ import { User } from '@prisma/client';
 
 export const CONTACT_STRATEGIES = Symbol('CONTACT_STRATEGIES');
 
-//? Narrows the union to a specific contactType branch
-export type NarrowLoginInput<T extends LoginInput['contactType']> = Extract<
+//? Narrows the union to a specific identifierType branch
+export type NarrowLoginInput<T extends LoginInput['identifierType']> = Extract<
   LoginInput,
-  { contactType: T }
+  { identifierType: T }
 >;
 
 export interface IContactStrategy<
-  T extends LoginInput['contactType'] = LoginInput['contactType'],
+  T extends LoginInput['identifierType'] = LoginInput['identifierType'],
 > {
-  readonly contactType: T;
+  readonly identifierType: T;
   getIdentifier(dto: NarrowLoginInput<T>): string;
   getIdentifierFromCache(user: UnverifiedUser): string;
   findExistingUser(dto: NarrowLoginInput<T>): Promise<SafeUser | null>;

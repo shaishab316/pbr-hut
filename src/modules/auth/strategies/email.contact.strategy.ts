@@ -14,7 +14,7 @@ type EmailInput = NarrowLoginInput<'email'>;
 
 @Injectable()
 export class EmailContactStrategy implements IContactStrategy<'email'> {
-  readonly contactType = 'email' as const;
+  readonly identifierType = 'email' as const;
 
   constructor(
     private readonly userRepo: UserRepository,

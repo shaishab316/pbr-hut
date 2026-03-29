@@ -25,7 +25,9 @@ export class AuthService {
   ) {}
 
   async signUp(signUpDto: SignUpInput) {
-    const strategy = this.contactStrategyFactory.resolve(signUpDto.contactType);
+    const strategy = this.contactStrategyFactory.resolve(
+      signUpDto.identifierType,
+    );
 
     const existingUser = await strategy.findExistingUser(signUpDto);
     if (existingUser) {
@@ -43,7 +45,7 @@ export class AuthService {
       createdAt: new Date(),
 
       //? We need this to know which strategy to use when resending OTP or verifying from cache
-      contactType: signUpDto.contactType,
+      identifierType: signUpDto.identifierType,
     } satisfies UnverifiedUser;
 
     await this.authCacheRepo.saveUnverifiedUser(identifier, unverifiedUser);
@@ -74,7 +76,7 @@ export class AuthService {
   }
 
   private async sendOtp(user: UnverifiedUser) {
-    const strategy = this.contactStrategyFactory.resolve(user.contactType);
+    const strategy = this.contactStrategyFactory.resolve(user.identifierType);
 
     const identifier = strategy.getIdentifierFromCache(user);
 
@@ -98,7 +100,9 @@ export class AuthService {
   }
 
   async login(loginDto: LoginInput) {
-    const strategy = this.contactStrategyFactory.resolve(loginDto.contactType);
+    const strategy = this.contactStrategyFactory.resolve(
+      loginDto.identifierType,
+    );
 
     const user = await strategy.findExistingUserWithPassword(loginDto);
 

@@ -6,7 +6,7 @@ import type { SignUpInput } from '../dto/sign-up.dto';
 export type UnverifiedUser = Pick<
   Prisma.UserCreateInput,
   'name' | 'email' | 'phone' | 'passwordHash' | 'createdAt'
-> & { contactType: SignUpInput['contactType'] };
+> & { identifierType: SignUpInput['identifierType'] };
 
 @Injectable()
 export class AuthCacheRepository {

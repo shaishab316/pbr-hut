@@ -10,7 +10,7 @@ type PhoneInput = NarrowLoginInput<'phone'>;
 
 @Injectable()
 export class PhoneContactStrategy implements IContactStrategy<'phone'> {
-  readonly contactType = 'phone' as const;
+  readonly identifierType = 'phone' as const;
 
   constructor(private readonly userRepo: UserRepository) {}
 

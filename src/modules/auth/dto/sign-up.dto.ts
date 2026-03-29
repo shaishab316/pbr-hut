@@ -2,12 +2,12 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
 const EmailSignUpSchema = z.object({
-  contactType: z.literal('email').default('email'),
+  identifierType: z.literal('email').default('email'),
   email: z.email('Invalid email address'),
 });
 
 const PhoneSignUpSchema = z.object({
-  contactType: z.literal('phone'),
+  identifierType: z.literal('phone'),
   phone: z.string('Phone number is required').refine(
     (val) =>
       //? This regex checks for a valid phone number format (E.164) and ensures it contains 10 to 15 digits after removing non-digit characters.
@@ -18,7 +18,7 @@ const PhoneSignUpSchema = z.object({
 });
 
 const SignUpSchema = z
-  .discriminatedUnion('contactType', [EmailSignUpSchema, PhoneSignUpSchema])
+  .discriminatedUnion('identifierType', [EmailSignUpSchema, PhoneSignUpSchema])
   .and(
     z.object({
       name: z
