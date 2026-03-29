@@ -1,6 +1,6 @@
 # Auth Module — Developer Documentation
 
-> **Base path:** `/auth`  
+> **Base path:** `/src/modules/auth`  
 > **Pipe:** `ZodValidationPipe` (nestjs-zod) — all validation errors return `400` with a structured body.  
 > **Auth:** All endpoints in this module are **public** (no JWT guard). Protected routes in other modules use the `JwtAuthGuard`.
 
@@ -101,7 +101,7 @@ Phone numbers must conform to **E.164 format** and contain 10–15 digits after 
 ```
 Client                          Server                         Redis / DB
   │                               │                               │
-  │── POST /auth/register ────────►│                               │
+  │── POST /auth/register ───────►│                               │
   │   { email, name, password }   │                               │
   │                               │── findExistingUser() ────────►│
   │                               │◄─ null ───────────────────────│
@@ -110,7 +110,7 @@ Client                          Server                         Redis / DB
   │                               │── sendVerification() ─────────┼──► Email/SMS
   │◄── 200 { identifier } ────────│                               │
   │                               │                               │
-  │── POST /auth/verify-otp ──────►│                               │
+  │── POST /auth/verify-otp ─────►│                               │
   │   { email, otp,               │                               │
   │     verifyReason: "register" }│                               │
   │                               │── otpService.verify() ────────│
@@ -135,7 +135,7 @@ Client                          Server                         Redis / DB
 ```
 Client                          Server
   │                               │
-  │── POST /auth/login ───────────►│
+  │── POST /auth/login ──────────►│
   │   { email, password }         │
   │                               │── findExistingUserWithPassword()
   │                               │   (includes passwordHash)
@@ -144,8 +144,8 @@ Client                          Server
   │◄── 200 { token, user } ───────│
   │                               │
   │   ┌─────────────────────────────────────────────────────┐
-  │   │ All subsequent requests:                             │
-  │   │ Authorization: Bearer <token>                        │
+  │   │ All subsequent requests:                            │
+  │   │ Authorization: Bearer <token>                       │
   │   └─────────────────────────────────────────────────────┘
 ```
 
@@ -167,37 +167,37 @@ The returned `user` object **never contains `passwordHash`** — it is stripped 
 This is a 3-step flow. Each step depends on state from the previous one.
 
 ```
-Client                          Server                         Redis
-  │                               │                               │
-  │  STEP 1 ─────────────────────────────────────────────────── │
+Client                          Server                           Redis
+  │                                │                               │
+  │  STEP 1 ────────────────────────────────────────────────────── │
   │── POST /auth/forgot-password ─►│                               │
-  │   { email }                   │── findExistingUser()          │
-  │                               │── saveResetPasswordNonce() ──►│  nonce = uuid
-  │                               │── otpService.generate(nonce)  │  OTP keyed on nonce
-  │                               │── sendPasswordReset() ─────────┼──► Email/SMS
-  │◄── 200 { identifier } ────────│                               │
-  │                               │                               │
-  │  STEP 2 ─────────────────────────────────────────────────── │
+  │   { email }                    │── findExistingUser()          │
+  │                                │── saveResetPasswordNonce() ──►│  nonce = uuid
+  │                                │── otpService.generate(nonce)  │  OTP keyed on nonce
+  │                                │── sendPasswordReset() ────────┼──► Email/SMS
+  │◄── 200 { identifier } ─────────│                               │
+  │                                │                               │
+  │  STEP 2 ────────────────────────────────────────────────────── │
   │── POST /auth/verify-otp ──────►│                               │
-  │   { email, otp,               │── otpService.verify(otp,      │
-  │     verifyReason:             │     identifier) ──────────────│
-  │     "forgot-password" }       │── findExistingUser()          │
-  │                               │── getResetPasswordNonce() ───►│
-  │                               │── jwtService.sign(            │
-  │                               │     { sub, nonce })           │
-  │◄── 200 { token } ─────────────│                               │
-  │                               │   ⚠ nonce NOT deleted yet     │
-  │                               │                               │
-  │  STEP 3 ─────────────────────────────────────────────────── │
+  │   { email, otp,                │── otpService.verify(otp,      │
+  │     verifyReason:              │     identifier) ──────────────│
+  │     "forgot-password" }        │── findExistingUser()          │
+  │                                │── getResetPasswordNonce() ───►│
+  │                                │── jwtService.sign(            │
+  │                                │     { sub, nonce })           │
+  │◄── 200 { token } ──────────────│                               │
+  │                                │   :x: nonce NOT deleted yet   │
+  │                                │                               │
+  │  STEP 3 ────────────────────────────────────────────────────── │
   │── POST /auth/reset-password ──►│                               │
-  │   { token, newPassword }      │── jwtService.verify(token)    │
-  │                               │── getResetPasswordNonce() ───►│
-  │                               │   compare nonce in token      │
-  │                               │   vs nonce in Redis           │
-  │                               │── userRepo.update(            │
-  │                               │     hash(newPassword))        │
-  │                               │── deleteResetPasswordNonce() ►│  cleanup
-  │◄── 200 { message } ───────────│                               │
+  │   { token, newPassword }       │── jwtService.verify(token)    │
+  │                                │── getResetPasswordNonce() ───►│
+  │                                │   compare nonce in token      │
+  │                                │   vs nonce in Redis           │
+  │                                │── userRepo.update(            │
+  │                                │     hash(newPassword))        │
+  │                                │── deleteResetPasswordNonce() ►│  cleanup
+  │◄── 200 { message } ────────────│                               │
 ```
 
 **Why OTP is generated from the nonce (not the email/phone):**  
