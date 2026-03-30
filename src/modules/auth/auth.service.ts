@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   AuthCacheRepository,
+  UnverifiedRider,
   type UnverifiedUser,
 } from './repository/auth.cache.repository';
 import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
@@ -20,6 +21,10 @@ import { JwtPayload } from '@/common/strategies/jwt.strategy';
 import { ForgotPasswordInput } from './dto/forgot-password.dto';
 import { SafeUser } from '@/common/types/safe-user.type';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RiderSignUpInput } from './dto/rider-sign-up.dto';
+import { UserRole } from '@prisma/client';
+import { RiderRepository } from '../user/repositories/rider.repository';
+import { GeohashUtil } from '@/common/utils/geohash.util';
 
 export type ResetPasswordTokenPayload = {
   sub: string; // userId
@@ -31,6 +36,7 @@ export class AuthService {
   constructor(
     private readonly authCacheRepo: AuthCacheRepository,
     private readonly userRepo: UserRepository,
+    private readonly riderRepo: RiderRepository,
     private readonly contactStrategyFactory: ContactStrategyFactory,
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
@@ -51,6 +57,8 @@ export class AuthService {
     const identifier = strategy.getIdentifier(signUpDto);
 
     const unverifiedUser = {
+      role: UserRole.CUSTOMER,
+
       name: signUpDto.name,
       ...strategy.buildContactFields(signUpDto),
       passwordHash: await hashPassword(signUpDto.password),
@@ -110,9 +118,32 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { identifierType, ...userData } = unverifiedUser;
 
-    await this.userRepo.create(userData);
-
     await this.authCacheRepo.deleteUnverifiedUser(identifier);
+
+    switch (userData.role) {
+      case UserRole.CUSTOMER: {
+        await this.userRepo.create(userData);
+        break;
+      }
+      case UserRole.RIDER: {
+        const { latitude, longitude, ...riderData } = userData;
+        const geohash = GeohashUtil.encodeGeohash(latitude, longitude);
+
+        const user = await this.userRepo.create(riderData);
+
+        await this.riderRepo.createProfile({
+          user: {
+            connect: { id: user.id },
+          },
+
+          latitude,
+          longitude,
+          geohash,
+        });
+
+        break;
+      }
+    }
 
     return { message: 'Account verified successfully' };
   }
@@ -139,7 +170,7 @@ export class AuthService {
     };
   }
 
-  private async sendOtp(user: UnverifiedUser) {
+  private async sendOtp<T extends UnverifiedUser | UnverifiedRider>(user: T) {
     const strategy = this.contactStrategyFactory.resolve(user.identifierType);
 
     const identifier = strategy.getIdentifierFromCache(user);
@@ -260,5 +291,41 @@ export class AuthService {
     await this.authCacheRepo.deleteResetPasswordNonce(user.id);
 
     return { message: 'Password reset successful' };
+  }
+
+  async riderSignUp(signUpDto: RiderSignUpInput) {
+    const strategy = this.contactStrategyFactory.resolve(
+      signUpDto.identifierType,
+    );
+
+    const existingUser = await strategy.findExistingUser(signUpDto);
+    if (existingUser) {
+      throw new BadRequestException(
+        'Already have an account with this identifier, please login instead',
+      );
+    }
+
+    const identifier = strategy.getIdentifier(signUpDto);
+
+    const unverifiedUser = {
+      role: UserRole.RIDER,
+
+      name: signUpDto.name,
+      ...strategy.buildContactFields(signUpDto),
+      passwordHash: await hashPassword(signUpDto.password),
+      createdAt: new Date(),
+
+      latitude: signUpDto.latitude,
+      longitude: signUpDto.longitude,
+
+      //? We need this to know which strategy to use when resending OTP or verifying from cache
+      identifierType: signUpDto.identifierType,
+    } satisfies UnverifiedRider;
+
+    await this.authCacheRepo.saveUnverifiedUser(identifier, unverifiedUser);
+
+    await this.sendOtp(unverifiedUser);
+
+    return { message: 'Verification sent', data: { identifier } };
   }
 }

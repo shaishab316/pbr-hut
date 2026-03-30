@@ -1,10 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/require-await */
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { UserRepository } from '../../user/repositories/user.repository';
 import {
   IContactStrategy,
   NarrowLoginInput,
 } from './contact.strategy.interface';
-import type { UnverifiedUser } from '../repository/auth.cache.repository';
+import type {
+  UnverifiedRider,
+  UnverifiedUser,
+} from '../repository/auth.cache.repository';
 import { SafeUser } from '@/common/types/safe-user.type';
 
 type PhoneInput = NarrowLoginInput<'phone'>;
@@ -19,7 +24,7 @@ export class PhoneContactStrategy implements IContactStrategy<'phone'> {
     return dto.phone;
   }
 
-  getIdentifierFromCache(user: UnverifiedUser) {
+  getIdentifierFromCache<T extends UnverifiedUser | UnverifiedRider>(user: T) {
     return user.phone!;
   }
 
@@ -35,13 +40,14 @@ export class PhoneContactStrategy implements IContactStrategy<'phone'> {
     return this.userRepo.findByPhoneWithPassword(dto.phone);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
-  async sendVerification(_dto: UnverifiedUser, _otp: string): Promise<void> {
+  async sendVerification<T extends UnverifiedUser | UnverifiedRider>(
+    _dto: T,
+    _otp: string,
+  ): Promise<void> {
     // TODO: SMS OTP
     throw new BadRequestException('Phone verification not implemented yet');
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
   async sendPasswordReset(user: SafeUser, otp: string): Promise<void> {
     // TODO: SMS OTP
     throw new BadRequestException('Phone password reset not implemented yet');

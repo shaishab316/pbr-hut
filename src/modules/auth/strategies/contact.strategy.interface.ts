@@ -1,5 +1,8 @@
 import type { SafeUser } from '@/common/types/safe-user.type';
-import type { UnverifiedUser } from '../repository/auth.cache.repository';
+import type {
+  UnverifiedRider,
+  UnverifiedUser,
+} from '../repository/auth.cache.repository';
 import { User } from '@prisma/client';
 
 type LoginInput =
@@ -25,10 +28,15 @@ export interface IContactStrategy<
 > {
   readonly identifierType: T;
   getIdentifier(dto: NarrowLoginInput<T>): string;
-  getIdentifierFromCache(user: UnverifiedUser): string;
+  getIdentifierFromCache<T extends UnverifiedUser | UnverifiedRider>(
+    user: T,
+  ): string;
   findExistingUser(dto: NarrowLoginInput<T>): Promise<SafeUser | null>;
   findExistingUserWithPassword(dto: NarrowLoginInput<T>): Promise<User | null>;
-  sendVerification(dto: UnverifiedUser, otp: string): Promise<void>;
+  sendVerification<T extends UnverifiedUser | UnverifiedRider>(
+    dto: T,
+    otp: string,
+  ): Promise<void>;
   sendPasswordReset(user: SafeUser, otp: string): Promise<void>;
   buildContactFields(dto: NarrowLoginInput<T>): Partial<Record<T, string>>;
 }

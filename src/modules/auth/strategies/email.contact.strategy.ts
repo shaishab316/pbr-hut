@@ -8,7 +8,10 @@ import {
   IContactStrategy,
   NarrowLoginInput,
 } from './contact.strategy.interface';
-import type { UnverifiedUser } from '../repository/auth.cache.repository';
+import type {
+  UnverifiedRider,
+  UnverifiedUser,
+} from '../repository/auth.cache.repository';
 import type { SendMailData } from '@/common/mail/mail.processor';
 
 type EmailInput = NarrowLoginInput<'email'>;
@@ -26,7 +29,7 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
     return dto.email;
   }
 
-  getIdentifierFromCache(user: UnverifiedUser) {
+  getIdentifierFromCache<T extends UnverifiedUser | UnverifiedRider>(user: T) {
     return user.email!;
   }
 
@@ -42,7 +45,10 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
     return this.userRepo.findByEmailWithPassword(dto.email);
   }
 
-  async sendVerification(user: UnverifiedUser, otp: string): Promise<void> {
+  async sendVerification<T extends UnverifiedUser | UnverifiedRider>(
+    user: T,
+    otp: string,
+  ): Promise<void> {
     await this.queue.add(
       MAIL_QUEUE,
       {

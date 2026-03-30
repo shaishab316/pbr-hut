@@ -17,6 +17,7 @@ import {
   ForgotPasswordInput,
 } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RiderSignUpDto, RiderSignUpInput } from './dto/rider-sign-up.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -64,5 +65,11 @@ export class AuthController {
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('register-rider')
+  @HttpCode(200)
+  async riderSignUp(@Body() dto: RiderSignUpDto) {
+    return this.authService.riderSignUp(dto as unknown as RiderSignUpInput);
   }
 }

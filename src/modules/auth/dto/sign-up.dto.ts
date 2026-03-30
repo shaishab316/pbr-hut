@@ -17,7 +17,7 @@ const PhoneSignUpSchema = z.object({
   ),
 });
 
-const SignUpSchema = z
+export const SignUpSchema = z
   .discriminatedUnion('identifierType', [EmailSignUpSchema, PhoneSignUpSchema])
   .and(
     z.object({
