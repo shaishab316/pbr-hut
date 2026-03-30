@@ -1,6 +1,8 @@
 model RiderProfile {
   userId String @id 
 
+  latitude  Float?
+  longitude Float?
   geohash String? //? city-level
 
   nidFrontUrl     String?
