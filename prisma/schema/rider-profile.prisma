@@ -1,13 +1,13 @@
 model RiderProfile {
-  userId String @id 
+  userId String @id
 
   latitude  Float?
   longitude Float?
-  geohash String? //? city-level
+  h3Index   String?
 
   nidFrontUrl     String?
   nidBackUrl      String?
-  nidStatus       NidStatus @default(PENDING)
+  nidStatus       NidStatus @default(NOT_SUBMITTED)
   verifiedAt      DateTime?
   rejectionReason String? //? only set when REJECTED
 
@@ -19,12 +19,13 @@ model RiderProfile {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([geohash])
+  @@index([h3Index])
   @@index([isAvailable, isBusy, nidStatus])
   @@map("rider_profiles")
 }
 
 enum NidStatus {
+  NOT_SUBMITTED
   PENDING
   VERIFIED
   REJECTED

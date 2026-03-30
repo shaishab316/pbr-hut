@@ -24,7 +24,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RiderSignUpInput } from './dto/rider-sign-up.dto';
 import { UserRole } from '@prisma/client';
 import { RiderRepository } from '../user/repositories/rider.repository';
-import { GeohashUtil } from '@/common/utils/geohash.util';
+import { H3IndexUtil } from '@/common/utils/h3index.util';
 
 export type ResetPasswordTokenPayload = {
   sub: string; // userId
@@ -127,7 +127,7 @@ export class AuthService {
       }
       case UserRole.RIDER: {
         const { latitude, longitude, ...riderData } = userData;
-        const geohash = GeohashUtil.encodeGeohash(latitude, longitude);
+        const h3Index = H3IndexUtil.encodeH3(latitude, longitude);
 
         const user = await this.userRepo.create(riderData);
 
@@ -138,7 +138,7 @@ export class AuthService {
 
           latitude,
           longitude,
-          geohash,
+          h3Index,
         });
 
         break;
