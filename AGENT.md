@@ -32,7 +32,12 @@ pnpm run test               # unit tests (jest, rootDir: src)
 pnpm run test:e2e           # e2e (config: test/jest-e2e.json)
 pnpm run prisma:generate    # after schema changes
 pnpm run prisma:migrate     # prisma migrate dev (local dev)
+pnpm run docs:dev           # VitePress dev server for ./docs (GitBook-style site)
+pnpm run docs:build         # static HTML → docs/.vitepress/dist
+pnpm run docs:preview       # preview production doc build locally
 ```
+
+**Static handbook (Markdown → GitHub Pages):** Author pages under `docs/**/*.md`. Config and nav live in `docs/.vitepress/config.mts`. CI (`.github/workflows/deploy-docs.yml`) builds with `DOCS_BASE=/<repo>/` and deploys to GitHub Pages — enable **Settings → Pages → GitHub Actions** once.
 
 **API entry:** HTTP server; global prefix `**api/v1`** (`src/main.ts`). **Docs:** Scalar UI at `/docs`; OpenAPI JSON still built for Swagger at `/api` (Swagger UI disabled in code).
 

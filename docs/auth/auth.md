@@ -566,7 +566,7 @@ Validation errors from `ZodValidationPipe` return an array of issues:
 
 ### OTP
 
-> See [`docs/otp/otp.md`](./otp/otp.md) for full OTP generation, verification, TTL, and configuration details.
+> See [`docs/otp/otp.md`](../otp/otp.md) for full OTP generation, verification, TTL, and configuration details.
 
 - For registration: OTP is keyed on the **user's identifier** (email or phone).
 - For forgot-password: OTP is keyed on the **server-generated nonce** — not the identifier. This means an OTP issued for one reset session cannot be used for another, even for the same user.
@@ -607,7 +607,7 @@ An unverified user record lives **only in Redis** until OTP confirmation. If the
 | `unverified:<identifier>` | `UnverifiedUser` JSON | `/auth/register` | `/auth/verify-otp` (success) | Configured in `AuthCacheRepository` |
 | `reset-nonce:<userId>` | nonce `string` (UUID) | `/auth/forgot-password` | `/auth/reset-password` (success) | Configured in `AuthCacheRepository` |
 
-> Inspect `AuthCacheRepository` for exact key names and TTL values. If you change TTLs, update the OTP window accordingly — see [`docs/otp/otp.md`](./otp/otp.md). A user cannot verify an OTP after the Redis session has expired regardless of the OTP's own validity window.
+> Inspect `AuthCacheRepository` for exact key names and TTL values. If you change TTLs, update the OTP window accordingly — see [`docs/otp/otp.md`](../otp/otp.md). A user cannot verify an OTP after the Redis session has expired regardless of the OTP's own validity window.
 
 ---
 
