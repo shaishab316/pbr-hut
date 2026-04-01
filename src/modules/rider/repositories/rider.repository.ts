@@ -37,4 +37,10 @@ export class RiderRepository {
       data,
     });
   }
+
+  async findById(userId: string) {
+    return this.prisma.riderProfile.findUnique({
+      where: { userId },
+    });
+  }
 }
