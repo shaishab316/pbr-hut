@@ -30,10 +30,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Version comes from package.json "packageManager" (pnpm@10.20.0) — do not set version here too.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
