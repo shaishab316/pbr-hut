@@ -24,4 +24,17 @@ export class RiderRepository {
       where: { userId },
     });
   }
+
+  async updateNid(
+    userId: string,
+    data: Pick<
+      Prisma.RiderProfileUpdateInput,
+      'nidFrontUrl' | 'nidBackUrl' | 'nidStatus'
+    >,
+  ) {
+    return this.prisma.riderProfile.update({
+      where: { userId },
+      data,
+    });
+  }
 }
