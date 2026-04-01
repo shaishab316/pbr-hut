@@ -9,12 +9,12 @@ import {
 } from '@nestjs/swagger';
 import { EmailSignUpModel, PhoneSignUpModel } from './models/signup.model';
 
-export const ApiSignUp = () =>
+export const ApiCustomerSignUp = () =>
   applyDecorators(
     ApiOperation({
-      summary: 'Register a new user',
+      summary: 'Register a new customer',
       description:
-        'Sends OTP to email or phone. Discriminated by `identifierType`.',
+        'Sends OTP to email or phone. Discriminated by `identifierType`. Customer can sign up with email or phone.',
     }),
     ApiExtraModels(EmailSignUpModel, PhoneSignUpModel),
     ApiBody({

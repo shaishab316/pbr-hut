@@ -1,4 +1,5 @@
 export * from './signup.docs';
+export * from './rider-signup.docs';
 export * from './login.docs';
 export * from './forgot-password.docs';
 export * from './reset-password.docs';

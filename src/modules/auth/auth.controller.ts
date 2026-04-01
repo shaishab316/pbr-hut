@@ -9,7 +9,8 @@ import {
   ApiLogin,
   ApiResendOtp,
   ApiResetPassword,
-  ApiSignUp,
+  ApiRiderSignUp,
+  ApiCustomerSignUp,
   ApiVerifyOtp,
 } from './docs';
 import {
@@ -23,11 +24,18 @@ import { RiderSignUpDto, RiderSignUpInput } from './dto/rider-sign-up.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @ApiSignUp()
-  @Post('register')
+  @ApiCustomerSignUp()
+  @Post('register-customer')
   @HttpCode(200)
   async signUp(@Body() dto: SignUpDto) {
     return this.authService.signUp(dto as unknown as SignUpInput);
+  }
+
+  @ApiRiderSignUp()
+  @Post('register-rider')
+  @HttpCode(200)
+  async riderSignUp(@Body() dto: RiderSignUpDto) {
+    return this.authService.riderSignUp(dto as unknown as RiderSignUpInput);
   }
 
   @ApiVerifyOtp()
@@ -65,11 +73,5 @@ export class AuthController {
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
-  }
-
-  @Post('register-rider')
-  @HttpCode(200)
-  async riderSignUp(@Body() dto: RiderSignUpDto) {
-    return this.authService.riderSignUp(dto as unknown as RiderSignUpInput);
   }
 }
