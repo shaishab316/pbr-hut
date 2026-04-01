@@ -15,6 +15,7 @@ import {
 } from './strategies/contact.strategy.interface';
 import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
 import { OtpModule } from '../otp/otp.module';
+import { RiderModule } from '../rider/rider.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { OtpModule } from '../otp/otp.module';
       }),
     }),
     UserModule,
+    RiderModule,
     OtpModule,
   ],
   providers: [

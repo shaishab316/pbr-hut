@@ -14,6 +14,7 @@ import { ExpressAdapter } from '@bull-board/express';
 import { MAIL_QUEUE } from './common/mail/mail.constants';
 import { LoggerMiddleware } from './common/middlewares';
 import { OtpModule } from './modules/otp/otp.module';
+import { RiderModule } from './modules/rider/rider.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { OtpModule } from './modules/otp/otp.module';
     AuthModule,
     UserModule,
     OtpModule,
+    RiderModule,
   ],
 })
 export class AppModule implements NestModule {

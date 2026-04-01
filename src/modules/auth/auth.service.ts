@@ -23,7 +23,7 @@ import { SafeUser } from '@/common/types/safe-user.type';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RiderSignUpInput } from './dto/rider-sign-up.dto';
 import { UserRole } from '@prisma/client';
-import { RiderRepository } from '../user/repositories/rider.repository';
+import { RiderRepository } from '../rider/repositories/rider.repository';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 
 export type ResetPasswordTokenPayload = {
