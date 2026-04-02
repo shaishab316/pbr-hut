@@ -16,6 +16,8 @@ import { LoggerMiddleware } from './common/middlewares';
 import { OtpModule } from './modules/otp/otp.module';
 import { RiderModule } from './modules/rider/rider.module';
 import { ItemModule } from './modules/item/item.module';
+import { CategoryModule } from './modules/category/category.module';
+import { TagModule } from './modules/tag/tag.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { ItemModule } from './modules/item/item.module';
     OtpModule,
     RiderModule,
     ItemModule,
+    CategoryModule,
+    TagModule,
   ],
 })
 export class AppModule implements NestModule {
