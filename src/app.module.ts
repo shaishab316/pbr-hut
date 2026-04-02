@@ -15,6 +15,7 @@ import { MAIL_QUEUE } from './common/mail/mail.constants';
 import { LoggerMiddleware } from './common/middlewares';
 import { OtpModule } from './modules/otp/otp.module';
 import { RiderModule } from './modules/rider/rider.module';
+import { ItemModule } from './modules/item/item.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { RiderModule } from './modules/rider/rider.module';
     UserModule,
     OtpModule,
     RiderModule,
+    ItemModule,
   ],
 })
 export class AppModule implements NestModule {
