@@ -19,31 +19,40 @@ export class ResponseInterceptor implements NestInterceptor {
   private buildResponse(data: any, res: Response) {
     const statusCode = res.statusCode;
 
+    // Handle cache header
     if (data?.__cache) {
       const { __cache, ...rest } = data;
       res.setHeader('X-Cache', __cache);
       data = rest;
     }
 
+    // Build response object
+    const response: any = {
+      success: true,
+      statusCode,
+      message: data?.message || 'Success',
+    };
+
+    // Add pagination if present
+    if (data?.pagination) {
+      response.pagination = data.pagination;
+    }
+
+    // Add meta if present
     if (data?.meta) {
-      return {
-        success: true,
-        statusCode,
-        message: data.message ?? 'Success',
-        data: data.data,
-        meta: data.meta,
-      };
+      response.meta = data.meta;
     }
 
-    if (data?.message) {
-      return {
-        success: true,
-        statusCode,
-        message: data.message,
-        data: data.data ?? null,
-      };
+    // Determine the data field
+    if (data?.data !== undefined) {
+      response.data = data.data;
+    } else if (!data?.message && !data?.pagination && !data?.meta) {
+      response.data = data;
+    } else {
+      // Don't include data field if it's empty and we have special fields
+      response.data = null;
     }
 
-    return { success: true, statusCode, message: 'Success', data };
+    return response;
   }
 }

@@ -1,7 +1,9 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
+  Query,
   UploadedFiles,
   UseInterceptors,
   HttpCode,
@@ -12,7 +14,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { ItemService } from './item.service';
 import { CreateItemDto, CreateItemSchema } from './dto/create-item.dto';
 import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
-import { ApiCreateItem } from './docs/item.docs';
+import { ApiCreateItem, ApiGetItems } from './docs/item.docs';
+import { QueryItemsDto } from './dto/query-items.dto';
 import { safeJsonParse } from '@/common/utils/safeJsonParse';
 
 const ItemUploadInterceptor = createFileUploadInterceptor({
@@ -30,6 +33,12 @@ const ItemUploadInterceptor = createFileUploadInterceptor({
 @Controller('items')
 export class ItemController {
   constructor(private readonly itemService: ItemService) {}
+
+  @Get()
+  @ApiGetItems()
+  findMany(@Query() query: QueryItemsDto) {
+    return this.itemService.findMany(query);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

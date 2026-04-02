@@ -7,11 +7,166 @@ import {
   ApiCreatedResponse,
   ApiExtraModels,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { FlatCreateItemModel, JsonCreateItemModel } from './models/item.model';
+
+export const ApiGetItems = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'List items',
+      description:
+        'Returns paginated menu items. Search matches **name** or **description** (case-insensitive). ' +
+        'Filter by **categoryId** and/or **subCategoryId**. Pagination uses **page** and **limit** (1-based page index).',
+    }),
+    ApiQuery({
+      name: 'search',
+      required: false,
+      description: 'Matches item name or description',
+    }),
+    ApiQuery({
+      name: 'categoryId',
+      required: false,
+      type: 'string',
+      format: 'uuid',
+    }),
+    ApiQuery({
+      name: 'subCategoryId',
+      required: false,
+      type: 'string',
+      format: 'uuid',
+    }),
+    ApiQuery({
+      name: 'page',
+      required: false,
+      type: Number,
+      description: '1-based page index (default 1)',
+    }),
+    ApiQuery({
+      name: 'limit',
+      required: false,
+      type: Number,
+      description: 'Page size (1–100, default 20)',
+    }),
+    ApiOkResponse({
+      description: 'Paginated items',
+      schema: {
+        example: {
+          success: true,
+          statusCode: 200,
+          message: 'Success',
+          data: [
+            {
+              id: 'f0f70859-d779-488a-a774-df78b6ec677a',
+              name: 'Smoky BBQ Bacon Burger',
+              description:
+                'Two smashed beef patties, melted cheddar, crispy bacon, and bourbon BBQ sauce on a toasted brioche bun. Served with pickles and our house burger sauce on the side.',
+              imageUrl:
+                'https://res.cloudinary.com/dibd5ymvh/image/upload/v1775125147/items/atdtsfrwxl6tga69eoqc.jpg',
+              displayOrder: 1,
+              isDeliverable: true,
+              isAvailable: true,
+              allowCustomNote: true,
+              isSideFree: true,
+              isExtrasOptional: true,
+              hasSizeVariants: true,
+              hasExtras: true,
+              categoryId: 'a9056df2-ad06-49b7-90dd-a0ec50c40ad8',
+              subCategoryId: '86ca3397-ec3d-4e98-aac1-b9b0074a7ef4',
+              createdAt: '2026-04-02T10:19:05.052Z',
+              updatedAt: '2026-04-02T10:19:05.052Z',
+              category: {
+                id: 'a9056df2-ad06-49b7-90dd-a0ec50c40ad8',
+                name: 'Burgers',
+              },
+              subCategory: {
+                id: '86ca3397-ec3d-4e98-aac1-b9b0074a7ef4',
+                name: 'Classic Beef',
+                categoryId: 'a9056df2-ad06-49b7-90dd-a0ec50c40ad8',
+              },
+              tags: [],
+              sizeVariants: [
+                {
+                  id: 'b780ebf0-c447-4db5-8251-40863a081bd7',
+                  size: 'SMALL',
+                  price: '9.5',
+                },
+                {
+                  id: '78488138-6f81-452c-9a7f-ac2c82cfefc9',
+                  size: 'REGULAR',
+                  price: '12.9',
+                },
+                {
+                  id: '0acd0073-5786-43a1-a952-cfeac3e36d23',
+                  size: 'MEDIUM',
+                  price: '14.5',
+                },
+                {
+                  id: 'cff30e7c-1b61-4fae-a1d6-be9adb62e27c',
+                  size: 'LARGE',
+                  price: '16.75',
+                },
+              ],
+              sideOptions: [
+                {
+                  id: '48d24932-838e-4c7e-8c35-e8920afc7fad',
+                  name: 'Cajun seasoned fries',
+                  price: '0',
+                  isDefault: true,
+                },
+                {
+                  id: 'ac754785-257b-40e3-ab03-55b4b2b31f93',
+                  name: 'Side house salad',
+                  price: '0',
+                  isDefault: false,
+                },
+                {
+                  id: '87929348-fdde-49c5-93df-e5326a1d1e7d',
+                  name: 'Crispy onion rings',
+                  price: '1.5',
+                  isDefault: false,
+                },
+              ],
+              extras: [
+                {
+                  id: '5ac901c2-3cda-416d-ac30-e566675dfa35',
+                  name: 'Extra beef patty',
+                  price: '3.5',
+                },
+                {
+                  id: '80559007-2903-435d-afbb-cebb04893869',
+                  name: 'Avocado',
+                  price: '2',
+                },
+                {
+                  id: '0607d16c-becd-4708-b398-2018056eb319',
+                  name: 'Fried egg',
+                  price: '1.75',
+                },
+              ],
+            },
+          ],
+          meta: {
+            total: 2,
+            limit: 20,
+            page: 1,
+            totalPages: 1,
+          },
+        },
+      },
+    }),
+    ApiUnauthorizedResponse({
+      description: 'Missing or invalid JWT',
+      schema: {
+        example: { statusCode: 401, message: 'Unauthorized' },
+      },
+    }),
+  );
 
 export const ApiCreateItem = () =>
   applyDecorators(
