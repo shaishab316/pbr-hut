@@ -11,7 +11,13 @@ export class CategoryRepository {
 
   findAll() {
     return this.prisma.category.findMany({
-      include: { subCategories: true },
+      include: {
+        subCategories: {
+          omit: {
+            categoryId: true, //? n + 1 query
+          },
+        },
+      },
       orderBy: { name: 'asc' },
     });
   }
