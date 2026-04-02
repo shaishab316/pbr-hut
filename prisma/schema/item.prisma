@@ -99,6 +99,5 @@ model ItemExtra {
   item   Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, name])
-  @@index([itemId])
   @@map("item_extras")
 }

@@ -109,9 +109,6 @@ CREATE UNIQUE INDEX "size_variants_itemId_size_key" ON "size_variants"("itemId",
 CREATE UNIQUE INDEX "side_options_itemId_name_key" ON "side_options"("itemId", "name");
 
 -- CreateIndex
-CREATE INDEX "item_extras_itemId_idx" ON "item_extras"("itemId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "item_extras_itemId_name_key" ON "item_extras"("itemId", "name");
 
 -- AddForeignKey
