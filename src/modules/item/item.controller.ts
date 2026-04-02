@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ItemService } from './item.service';
@@ -17,6 +18,9 @@ import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.
 import { ApiCreateItem, ApiGetItems } from './docs/item.docs';
 import { QueryItemsDto } from './dto/query-items.dto';
 import { safeJsonParse } from '@/common/utils/safeJsonParse';
+import { JwtGuard, RolesGuard } from '@/common/guards';
+import { Roles } from '@/common/decorators';
+import { UserRole } from '@prisma/client';
 
 const ItemUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -44,6 +48,8 @@ export class ItemController {
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateItem()
   @UseInterceptors(ItemUploadInterceptor)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async create(
     @UploadedFiles() files: { image?: Express.Multer.File[] },
     @Body() body: any,
