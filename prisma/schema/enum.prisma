@@ -1,0 +1,19 @@
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  RIDER
+}
+
+enum NidStatus {
+  NOT_SUBMITTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum Size {
+  SMALL
+  REGULAR
+  MEDIUM
+  LARGE
+}

@@ -1,0 +1,104 @@
+model Item {
+  id               String  @id @default(uuid())
+  name             String
+  description      String
+  imageUrl         String
+  displayOrder     Int     @default(0)
+  isDeliverable    Boolean @default(true)
+  isAvailable      Boolean @default(true)
+  allowCustomNote  Boolean @default(true)
+  isSideFree       Boolean @default(false)
+  isExtrasOptional Boolean @default(true)
+  hasSizeVariants  Boolean @default(false)
+  hasExtras        Boolean @default(false)
+
+  categoryId    String
+  subCategoryId String?
+  category      Category     @relation(fields: [categoryId], references: [id])
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  tags         ItemTag[]
+  sizeVariants SizeVariant[]
+  sideOptions  SideOption[]
+  extras       ItemExtra[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([displayOrder])
+  @@map("items")
+}
+
+model Category {
+  id            String        @id @default(uuid())
+  name          String        @unique // "Pizzas", "Burgers"
+  subCategories SubCategory[]
+  items         Item[]
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id         String   @id @default(uuid())
+  name       String // "Classic", "Vegan"
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  items      Item[]
+
+  @@unique([categoryId, name])
+  @@map("sub_categories")
+}
+
+model Tag {
+  id    String    @id @default(uuid())
+  name  String    @unique
+  items ItemTag[]
+
+  @@map("tags")
+}
+
+model ItemTag {
+  itemId String
+  tagId  String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, tagId])
+  @@map("item_tags")
+}
+
+model SizeVariant {
+  id     String  @id @default(uuid())
+  itemId String
+  size   Size // SMALL | REGULAR | MEDIUM | LARGE
+  price  Decimal @db.Decimal(10, 2)
+  item   Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, size])
+  @@map("size_variants")
+}
+
+model SideOption {
+  id        String  @id @default(uuid())
+  itemId    String
+  name      String // "Cajun Fries"
+  price     Decimal @db.Decimal(10, 2) // 0.00 when isSideFree = true
+  item      Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  isDefault Boolean @default(false) // default side option for the item
+
+  @@unique([itemId, name])
+  @@map("side_options")
+}
+
+model ItemExtra {
+  id     String  @id @default(uuid())
+  itemId String
+  name   String // "Black Olives"
+  price  Decimal @db.Decimal(10, 2)
+  item   Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, name])
+  @@index([itemId])
+  @@map("item_extras")
+}

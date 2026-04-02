@@ -1,13 +1,15 @@
 -- CreateEnum
-CREATE TYPE "NidStatus" AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
+CREATE TYPE "NidStatus" AS ENUM ('NOT_SUBMITTED', 'PENDING', 'VERIFIED', 'REJECTED');
 
 -- CreateTable
 CREATE TABLE "rider_profiles" (
     "userId" TEXT NOT NULL,
-    "geohash" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
+    "h3Index" TEXT,
     "nidFrontUrl" TEXT,
     "nidBackUrl" TEXT,
-    "nidStatus" "NidStatus" NOT NULL DEFAULT 'PENDING',
+    "nidStatus" "NidStatus" NOT NULL DEFAULT 'NOT_SUBMITTED',
     "verifiedAt" TIMESTAMP(3),
     "rejectionReason" TEXT,
     "isAvailable" BOOLEAN NOT NULL DEFAULT false,
@@ -19,7 +21,7 @@ CREATE TABLE "rider_profiles" (
 );
 
 -- CreateIndex
-CREATE INDEX "rider_profiles_geohash_idx" ON "rider_profiles"("geohash");
+CREATE INDEX "rider_profiles_h3Index_idx" ON "rider_profiles"("h3Index");
 
 -- CreateIndex
 CREATE INDEX "rider_profiles_isAvailable_isBusy_nidStatus_idx" ON "rider_profiles"("isAvailable", "isBusy", "nidStatus");

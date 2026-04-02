@@ -23,10 +23,3 @@ model RiderProfile {
   @@index([isAvailable, isBusy, nidStatus])
   @@map("rider_profiles")
 }
-
-enum NidStatus {
-  NOT_SUBMITTED
-  PENDING
-  VERIFIED
-  REJECTED
-}

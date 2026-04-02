@@ -19,9 +19,3 @@ model User {
   @@index([role])
   @@map("users")
 }
-
-enum UserRole {
-  CUSTOMER
-  ADMIN
-  RIDER
-}
