@@ -1,20 +1,53 @@
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infra/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
-import { z } from 'zod';
 import { CreateItemSchema } from '../dto/create-item.dto';
+import { z } from 'zod';
 
-type CreateItemInput = z.infer<typeof CreateItemSchema> & {
+export type CreateItemInput = z.infer<typeof CreateItemSchema> & {
   imageUrl: string;
 };
+
+type ValidateRefsInput = Pick<
+  CreateItemInput,
+  'categoryId' | 'subCategoryId' | 'tagIds'
+>;
 
 @Injectable()
 export class ItemRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async validateRefs({ categoryId, subCategoryId, tagIds }: ValidateRefsInput) {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+
+    if (subCategoryId) {
+      const sub = await this.prisma.subCategory.findFirst({
+        where: { id: subCategoryId, categoryId },
+      });
+      if (!sub)
+        throw new NotFoundException(
+          'SubCategory not found or does not belong to the given category',
+        );
+    }
+
+    if (tagIds.length > 0) {
+      const tags = await this.prisma.tag.findMany({
+        where: { id: { in: tagIds } },
+      });
+      if (tags.length !== tagIds.length)
+        throw new BadRequestException('One or more tagIds are invalid');
+    }
+  }
+
   async create(data: CreateItemInput) {
-    //? use transaction to ensure data consistency
     return this.prisma.$transaction(async (tx) => {
-      const item = await tx.item.create({
+      return tx.item.create({
         data: {
           name: data.name,
           description: data.description,
@@ -27,11 +60,8 @@ export class ItemRepository {
           isExtrasOptional: data.isExtrasOptional,
           hasSizeVariants: data.sizeVariants.length > 0,
           hasExtras: data.extras.length > 0,
-
           categoryId: data.categoryId,
           subCategoryId: data.subCategoryId ?? null,
-
-          // nested creates
           tags: {
             create: data.tagIds.map((tagId) => ({ tagId })),
           },
@@ -49,10 +79,7 @@ export class ItemRepository {
             })),
           },
           extras: {
-            create: data.extras.map((e) => ({
-              name: e.name,
-              price: e.price,
-            })),
+            create: data.extras.map((e) => ({ name: e.name, price: e.price })),
           },
         },
         include: {
@@ -64,8 +91,6 @@ export class ItemRepository {
           extras: true,
         },
       });
-
-      return item;
     });
   }
 }

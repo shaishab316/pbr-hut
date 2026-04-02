@@ -10,9 +10,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ItemService } from './item.service';
-import { CreateItemDto } from './dto/create-item.dto';
+import { CreateItemDto, CreateItemSchema } from './dto/create-item.dto';
 import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
 import { ApiCreateItem } from './docs/item.docs';
+import { safeJsonParse } from '@/common/utils/safeJsonParse';
 
 const ItemUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -36,11 +37,19 @@ export class ItemController {
   @UseInterceptors(ItemUploadInterceptor)
   async create(
     @UploadedFiles() files: { image?: Express.Multer.File[] },
-    @Body() dto: CreateItemDto,
+    @Body() body: any,
   ) {
     if (!files?.image?.[0]) {
       throw new BadRequestException('image file is required');
     }
+
+    // support both styles: flat bracket notation OR JSON data field
+    const raw: CreateItemDto = body['data']
+      ? safeJsonParse(body['data'])
+      : body;
+
+    const dto = CreateItemSchema.parse(raw);
+
     return this.itemService.create(dto, files.image[0]);
   }
 }
