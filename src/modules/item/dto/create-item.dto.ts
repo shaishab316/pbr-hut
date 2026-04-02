@@ -3,7 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import { Size } from '@prisma/client';
 
 const SizeVariantSchema = z.object({
-  size: z.nativeEnum(Size),
+  size: z.enum(Size),
   price: z.coerce.number().min(0, 'Price must be at least 0'),
 });
 

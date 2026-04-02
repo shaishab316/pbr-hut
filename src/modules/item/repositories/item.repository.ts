@@ -86,9 +86,21 @@ export class ItemRepository {
           category: true,
           subCategory: true,
           tags: { include: { tag: true } },
-          sizeVariants: true,
-          sideOptions: true,
-          extras: true,
+          sizeVariants: {
+            omit: {
+              itemId: true, //? n + 1 query
+            },
+          },
+          sideOptions: {
+            omit: {
+              itemId: true, //? n + 1 query
+            },
+          },
+          extras: {
+            omit: {
+              itemId: true, //? n + 1 query
+            },
+          },
         },
       });
     });
