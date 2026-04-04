@@ -45,7 +45,6 @@ const ItemUploadInterceptor = createFileUploadInterceptor({
 
 @ApiTags('Items')
 @Controller('items')
-@UseGuards(JwtGuard, RolesGuard)
 export class ItemController {
   constructor(private readonly itemService: ItemService) {}
 
@@ -53,7 +52,6 @@ export class ItemController {
 
   @Get()
   @ApiGetItems()
-  // No guards — public endpoint
   findMany(@Query() query: QueryItemsDto) {
     return this.itemService.findMany(query);
   }
@@ -64,6 +62,7 @@ export class ItemController {
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateItem()
   @UseInterceptors(ItemUploadInterceptor)
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async create(
     @UploadedFiles() files: { image?: Express.Multer.File[] },
@@ -85,6 +84,7 @@ export class ItemController {
   @Patch(':id')
   @ApiUpdateItem()
   @UseInterceptors(ItemUploadInterceptor)
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -103,6 +103,7 @@ export class ItemController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiDeleteItem()
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.itemService.softDelete(id);
