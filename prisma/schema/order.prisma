@@ -3,6 +3,11 @@ model Order {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  /// Short public reference for receipts and support (e.g. POGK4j524)
+  orderNumber      String  @unique
+  /// 4-digit code for the customer to share with the rider
+  confirmationCode String
+
   type          OrderType
   status        OrderStatus   @default(PENDING)
   paymentMethod PaymentMethod
@@ -11,6 +16,9 @@ model Order {
   deliveryTiming DeliveryTiming @default(NOW)
   scheduledAt    DateTime? // null when timing = NOW
 
+  estimatedArrivalAt DateTime? // ETA shown in the app while the order is active
+  deliveredAt        DateTime? // set when status becomes DELIVERED or PICKED_UP
+
   // Bill breakdown — snapshots from cart at checkout time
   itemsTotal     Decimal @db.Decimal(10, 2)
   deliveryCharge Decimal @default(0) @db.Decimal(10, 2) // 0 for PICKUP
@@ -18,6 +26,7 @@ model Order {
   totalAmount    Decimal @db.Decimal(10, 2)
 
   deliveryAddress OrderDeliveryAddress? // null for PICKUP
+  billingAddress  OrderBillingAddress? // usually set for CARD; optional snapshot for COD
   items           OrderItem[]
 
   createdAt DateTime @default(now())
@@ -34,6 +43,9 @@ model OrderDeliveryAddress {
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  /// Map pin / street title (e.g. road name)
+  locationLabel String?
+
   name           String
   phoneNumber    String
   address        String
@@ -42,6 +54,22 @@ model OrderDeliveryAddress {
   longitude      Float?
 
   @@map("order_delivery_addresses")
+}
+
+model OrderBillingAddress {
+  id      String @id @default(uuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  country      String
+  addressLine1 String
+  addressLine2 String?
+  suburb       String
+  city         String
+  postalCode   String
+  state        String
+
+  @@map("order_billing_addresses")
 }
 
 model OrderItem {
