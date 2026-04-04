@@ -22,11 +22,13 @@ model Item {
   sideOptions  SideOption[]
   extras       ItemExtra[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([categoryId])
   @@index([displayOrder])
+  @@index([deletedAt])
   @@map("items")
 }
 

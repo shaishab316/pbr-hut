@@ -9,15 +9,21 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { FlatCreateItemModel, JsonCreateItemModel } from './models/item.model';
+import {
+  FlatCreateItemModel,
+  JsonCreateItemModel,
+  FlatUpdateItemModel,
+  JsonUpdateItemModel,
+} from './models/item.model';
 
 export const ApiGetItems = () =>
   applyDecorators(
-    ApiBearerAuth(),
     ApiOperation({
       summary: 'List items',
       description:
@@ -87,7 +93,6 @@ export const ApiGetItems = () =>
               subCategory: {
                 id: '86ca3397-ec3d-4e98-aac1-b9b0074a7ef4',
                 name: 'Classic Beef',
-                categoryId: 'a9056df2-ad06-49b7-90dd-a0ec50c40ad8',
               },
               tags: [],
               sizeVariants: [
@@ -101,16 +106,6 @@ export const ApiGetItems = () =>
                   size: 'REGULAR',
                   price: '12.9',
                 },
-                {
-                  id: '0acd0073-5786-43a1-a952-cfeac3e36d23',
-                  size: 'MEDIUM',
-                  price: '14.5',
-                },
-                {
-                  id: 'cff30e7c-1b61-4fae-a1d6-be9adb62e27c',
-                  size: 'LARGE',
-                  price: '16.75',
-                },
               ],
               sideOptions: [
                 {
@@ -119,18 +114,6 @@ export const ApiGetItems = () =>
                   price: '0',
                   isDefault: true,
                 },
-                {
-                  id: 'ac754785-257b-40e3-ab03-55b4b2b31f93',
-                  name: 'Side house salad',
-                  price: '0',
-                  isDefault: false,
-                },
-                {
-                  id: '87929348-fdde-49c5-93df-e5326a1d1e7d',
-                  name: 'Crispy onion rings',
-                  price: '1.5',
-                  isDefault: false,
-                },
               ],
               extras: [
                 {
@@ -138,33 +121,16 @@ export const ApiGetItems = () =>
                   name: 'Extra beef patty',
                   price: '3.5',
                 },
-                {
-                  id: '80559007-2903-435d-afbb-cebb04893869',
-                  name: 'Avocado',
-                  price: '2',
-                },
-                {
-                  id: '0607d16c-becd-4708-b398-2018056eb319',
-                  name: 'Fried egg',
-                  price: '1.75',
-                },
               ],
             },
           ],
-          meta: {
-            total: 2,
-            limit: 20,
-            page: 1,
-            totalPages: 1,
-          },
+          meta: { total: 2, limit: 20, page: 1, totalPages: 1 },
         },
       },
     }),
     ApiUnauthorizedResponse({
       description: 'Missing or invalid JWT',
-      schema: {
-        example: { statusCode: 401, message: 'Unauthorized' },
-      },
+      schema: { example: { statusCode: 401, message: 'Unauthorized' } },
     }),
   );
 
@@ -205,7 +171,7 @@ export const ApiCreateItem = () =>
             id: '6c35b16d-267a-4cfb-9a38-6eb4c5c46346',
             name: 'Spicy Jalapeño Double Stack',
             description:
-              'Two beef patties, pepper jack cheese, fresh jalapeños, chipotle mayo, lettuce, and tomato on a sesame seed bun. Heat level is medium—ask for extra jalapeños if you like it hot.',
+              'Two beef patties, pepper jack cheese, fresh jalapeños, chipotle mayo.',
             imageUrl:
               'https://res.cloudinary.com/dibd5ymvh/image/upload/v1775125344/items/adbnbxuadynwxygo0ifw.jpg',
             displayOrder: 2,
@@ -227,7 +193,6 @@ export const ApiCreateItem = () =>
             subCategory: {
               id: '86ca3397-ec3d-4e98-aac1-b9b0074a7ef4',
               name: 'Classic Beef',
-              categoryId: 'a9056df2-ad06-49b7-90dd-a0ec50c40ad8',
             },
             tags: [],
             sizeVariants: [
@@ -240,16 +205,6 @@ export const ApiCreateItem = () =>
                 id: '3925de99-35db-4790-af21-3f7dfaa189c3',
                 size: 'REGULAR',
                 price: '11.5',
-              },
-              {
-                id: 'ff6207d0-1f14-4505-8423-3702069dd4a0',
-                size: 'MEDIUM',
-                price: '13.25',
-              },
-              {
-                id: '1fce98e4-9205-42d2-aa27-518fe9049e10',
-                size: 'LARGE',
-                price: '15.5',
               },
             ],
             sideOptions: [
@@ -265,28 +220,12 @@ export const ApiCreateItem = () =>
                 price: '3',
                 isDefault: true,
               },
-              {
-                id: '6cc7eff2-0afd-4042-b69d-9814ec4037a9',
-                name: 'Coleslaw cup',
-                price: '1.75',
-                isDefault: false,
-              },
             ],
             extras: [
               {
                 id: '090aa854-7b92-4153-b2bd-fd7f21f683db',
                 name: 'Extra jalapeños',
                 price: '1',
-              },
-              {
-                id: '69a7cfcb-f2ca-42dc-99d6-73d165f28590',
-                name: 'Blue cheese crumbles',
-                price: '2.25',
-              },
-              {
-                id: '22f2a1dd-8185-46fd-9e85-9324e1ec2142',
-                name: 'Gluten-free bun swap',
-                price: '2',
               },
             ],
           },
@@ -343,8 +282,193 @@ export const ApiCreateItem = () =>
     }),
     ApiUnauthorizedResponse({
       description: 'Missing or invalid JWT',
+      schema: { example: { statusCode: 401, message: 'Unauthorized' } },
+    }),
+    ApiForbiddenResponse({
+      description: 'Caller is not ADMIN',
+      schema: { example: { statusCode: 403, message: 'Forbidden resource' } },
+    }),
+  );
+
+export const ApiUpdateItem = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiConsumes('multipart/form-data'),
+    ApiOperation({
+      summary: 'Update item',
+      description:
+        'Partially updates a menu item. **Only supplied fields are changed** — omitted fields retain their current values. ' +
+        'Nested arrays (`sizeVariants`, `sideOptions`, `extras`, `tagIds`) use **replace semantics**: ' +
+        'when provided the full set replaces the existing records; omit the array entirely to leave it untouched. ' +
+        'Same two payload styles as POST — **Flat fields** or **JSON data field**. Pick one.',
+    }),
+    ApiParam({ name: 'id', format: 'uuid', description: 'Item ID' }),
+    ApiExtraModels(FlatUpdateItemModel, JsonUpdateItemModel),
+    ApiBody({
       schema: {
-        example: { statusCode: 401, message: 'Unauthorized' },
+        oneOf: [
+          { $ref: getSchemaPath(FlatUpdateItemModel) },
+          { $ref: getSchemaPath(JsonUpdateItemModel) },
+        ],
+        discriminator: {
+          propertyName: 'style',
+          mapping: {
+            flat: getSchemaPath(FlatUpdateItemModel),
+            json: getSchemaPath(JsonUpdateItemModel),
+          },
+        },
       },
+    }),
+    ApiOkResponse({
+      description: 'Item updated successfully',
+      schema: {
+        example: {
+          message: 'Item updated successfully',
+          data: {
+            id: 'f0f70859-d779-488a-a774-df78b6ec677a',
+            name: 'Smoky BBQ Bacon Burger — Updated',
+            description:
+              'Two smashed beef patties, melted cheddar, crispy bacon, and bourbon BBQ sauce.',
+            imageUrl:
+              'https://res.cloudinary.com/dibd5ymvh/image/upload/v1775125999/items/newimage.jpg',
+            displayOrder: 1,
+            isDeliverable: true,
+            isAvailable: false,
+            allowCustomNote: true,
+            isSideFree: true,
+            isExtrasOptional: true,
+            hasSizeVariants: true,
+            hasExtras: true,
+            categoryId: 'a9056df2-ad06-49b7-90dd-a0ec50c40ad8',
+            subCategoryId: '86ca3397-ec3d-4e98-aac1-b9b0074a7ef4',
+            createdAt: '2026-04-02T10:19:05.052Z',
+            updatedAt: '2026-04-02T11:05:14.320Z',
+            category: {
+              id: 'a9056df2-ad06-49b7-90dd-a0ec50c40ad8',
+              name: 'Burgers',
+            },
+            subCategory: {
+              id: '86ca3397-ec3d-4e98-aac1-b9b0074a7ef4',
+              name: 'Classic Beef',
+            },
+            tags: [],
+            sizeVariants: [
+              {
+                id: 'c1b2e3f4-0000-0000-0000-000000000001',
+                size: 'SMALL',
+                price: '9.5',
+              },
+              {
+                id: 'c1b2e3f4-0000-0000-0000-000000000002',
+                size: 'REGULAR',
+                price: '12.9',
+              },
+            ],
+            sideOptions: [
+              {
+                id: 'd1e2f3a4-0000-0000-0000-000000000001',
+                name: 'Cajun seasoned fries',
+                price: '0',
+                isDefault: true,
+              },
+            ],
+            extras: [
+              {
+                id: 'e1f2a3b4-0000-0000-0000-000000000001',
+                name: 'Extra beef patty',
+                price: '3.5',
+              },
+            ],
+          },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Validation failed',
+      schema: {
+        examples: {
+          duplicateSize: {
+            summary: 'Duplicate size variant in the new array',
+            value: { statusCode: 400, message: 'Duplicate size entries' },
+          },
+          multipleDefaults: {
+            summary: 'More than one default side in the new array',
+            value: {
+              statusCode: 400,
+              message: 'Only one side option can be default',
+            },
+          },
+          invalidTags: {
+            summary: 'One or more tagIds do not exist',
+            value: {
+              statusCode: 400,
+              message: 'One or more tagIds are invalid',
+            },
+          },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Item, Category, or SubCategory not found',
+      schema: {
+        examples: {
+          itemNotFound: {
+            summary: 'Item not found or already deleted',
+            value: { statusCode: 404, message: 'Item not found' },
+          },
+          categoryNotFound: {
+            summary: 'Provided categoryId does not exist',
+            value: { statusCode: 404, message: 'Category not found' },
+          },
+          subCategoryNotFound: {
+            summary: 'SubCategory not found or wrong category',
+            value: {
+              statusCode: 404,
+              message:
+                'SubCategory not found or does not belong to the given category',
+            },
+          },
+        },
+      },
+    }),
+    ApiUnauthorizedResponse({
+      description: 'Missing or invalid JWT',
+      schema: { example: { statusCode: 401, message: 'Unauthorized' } },
+    }),
+    ApiForbiddenResponse({
+      description: 'Caller is not ADMIN',
+      schema: { example: { statusCode: 403, message: 'Forbidden resource' } },
+    }),
+  );
+
+export const ApiDeleteItem = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Delete item (soft)',
+      description:
+        'Soft-deletes an item by stamping `deletedAt`. The item is immediately hidden from all list and query endpoints ' +
+        'but remains in the database for audit purposes. This action is **irreversible** via the API.',
+    }),
+    ApiParam({ name: 'id', format: 'uuid', description: 'Item ID to delete' }),
+    ApiOkResponse({
+      description: 'Item deleted successfully',
+      schema: {
+        example: { message: 'Item deleted successfully' },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Item not found or already deleted',
+      schema: {
+        example: { statusCode: 404, message: 'Item not found' },
+      },
+    }),
+    ApiUnauthorizedResponse({
+      description: 'Missing or invalid JWT',
+      schema: { example: { statusCode: 401, message: 'Unauthorized' } },
+    }),
+    ApiForbiddenResponse({
+      description: 'Caller is not ADMIN',
+      schema: { example: { statusCode: 403, message: 'Forbidden resource' } },
     }),
   );
