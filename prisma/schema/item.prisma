@@ -26,6 +26,8 @@ model Item {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  cartItems CartItem[]
+
   @@index([categoryId])
   @@index([displayOrder])
   @@index([deletedAt])
@@ -77,6 +79,8 @@ model SizeVariant {
   price  Decimal @db.Decimal(10, 2)
   item   Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
+  cartItems CartItem[]
+
   @@unique([itemId, size])
   @@map("size_variants")
 }
@@ -89,6 +93,8 @@ model SideOption {
   item      Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
   isDefault Boolean @default(false) // default side option for the item
 
+  cartItems CartItem[]
+
   @@unique([itemId, name])
   @@map("side_options")
 }
@@ -99,6 +105,8 @@ model ItemExtra {
   name   String // "Black Olives"
   price  Decimal @db.Decimal(10, 2)
   item   Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  cartItemExtras CartItemExtra[]
 
   @@unique([itemId, name])
   @@map("item_extras")

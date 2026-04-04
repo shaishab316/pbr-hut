@@ -1,0 +1,62 @@
+model Cart {
+  id     String     @id @default(uuid())
+  userId String     @unique
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id     String @id @default(uuid())
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  quantity   Int     @default(1)
+  customNote String?
+
+  selectedSizeVariantId String?
+  selectedSizeVariant   SizeVariant? @relation(fields: [selectedSizeVariantId], references: [id], onDelete: SetNull)
+
+  selectedSideOptionId String?
+  selectedSideOption   SideOption? @relation(fields: [selectedSideOptionId], references: [id], onDelete: SetNull)
+
+  selectedExtras CartItemExtra[]
+
+  // Price snapshots — frozen at add-to-cart time
+  sizePrice Decimal? @db.Decimal(10, 2)
+  sidePrice Decimal? @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cartId])
+  @@index([itemId])
+  @@index([selectedSizeVariantId])
+  @@index([selectedSideOptionId])
+  @@map("cart_items")
+}
+
+model CartItemExtra {
+  id         String   @id @default(uuid())
+  cartItemId String
+  cartItem   CartItem @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+
+  itemExtraId String?
+  itemExtra   ItemExtra? @relation(fields: [itemExtraId], references: [id], onDelete: SetNull)
+
+  // Snapshot — name preserved even if ItemExtra is deleted after item update
+  extraName String
+  price     Decimal @db.Decimal(10, 2)
+
+  @@unique([cartItemId, itemExtraId])
+  @@index([cartItemId])
+  @@index([itemExtraId])
+  @@map("cart_item_extras")
+}
