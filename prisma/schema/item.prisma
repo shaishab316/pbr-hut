@@ -26,7 +26,8 @@ model Item {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  cartItems CartItem[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@index([categoryId])
   @@index([displayOrder])

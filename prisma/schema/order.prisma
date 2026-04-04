@@ -1,0 +1,87 @@
+model Order {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          OrderType
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(UNPAID)
+
+  deliveryTiming DeliveryTiming @default(NOW)
+  scheduledAt    DateTime? // null when timing = NOW
+
+  // Bill breakdown — snapshots from cart at checkout time
+  itemsTotal     Decimal @db.Decimal(10, 2)
+  deliveryCharge Decimal @default(0) @db.Decimal(10, 2) // 0 for PICKUP
+  taxes          Decimal @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal @db.Decimal(10, 2)
+
+  deliveryAddress OrderDeliveryAddress? // null for PICKUP
+  items           OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderDeliveryAddress {
+  id      String @id @default(uuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  name           String
+  phoneNumber    String
+  address        String
+  buildingDetail String?
+  latitude       Float?
+  longitude      Float?
+
+  @@map("order_delivery_addresses")
+}
+
+model OrderItem {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Keep FK for analytics, but nullable — item may be soft-deleted later
+  itemId String?
+  item   Item?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  // Snapshots — source of truth for receipts
+  itemName String
+  imageUrl String
+
+  quantity   Int     @default(1)
+  customNote String?
+
+  // Selected option snapshots
+  sizeName       String?
+  sideOptionName String?
+  sizePrice      Decimal? @db.Decimal(10, 2)
+  sidePrice      Decimal? @default(0) @db.Decimal(10, 2)
+
+  unitPrice  Decimal @db.Decimal(10, 2) // sizePrice + sidePrice + sum(extras)
+  totalPrice Decimal @db.Decimal(10, 2) // unitPrice × quantity
+
+  extras OrderItemExtra[]
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderItemExtra {
+  id          String    @id @default(uuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  extraName String // snapshot — "Corns & Capsicum"
+  price     Decimal @db.Decimal(10, 2)
+
+  @@map("order_item_extras")
+}

@@ -17,3 +17,36 @@ enum Size {
   MEDIUM
   LARGE
 }
+
+enum OrderType {
+  DELIVERY
+  PICKUP
+}
+
+enum DeliveryTiming {
+  NOW
+  SCHEDULED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CASH_ON_PICKUP
+  CARD
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING // just placed, awaiting confirmation
+  CONFIRMED // restaurant accepted
+  PREPARING // kitchen is working on it
+  READY_FOR_PICKUP // pickup only — customer can collect
+  OUT_FOR_DELIVERY // delivery only — rider dispatched
+  DELIVERED // delivery completed
+  PICKED_UP // pickup completed
+  CANCELLED
+}
