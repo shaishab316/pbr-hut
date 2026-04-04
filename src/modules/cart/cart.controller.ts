@@ -23,7 +23,7 @@ import {
   ApiGetCart,
   ApiRemoveCartItem,
   ApiUpdateCartItem,
-} from './docs/cart.docs';
+} from './docs';
 
 @ApiTags('Cart')
 @UseGuards(JwtGuard)

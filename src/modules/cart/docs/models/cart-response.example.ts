@@ -1,0 +1,53 @@
+/** Shared wrapper example for cart endpoints (matches `ResponseInterceptor` shape). */
+export const cartResponseExample = {
+  success: true,
+  statusCode: 200,
+  message: 'Success',
+  data: {
+    id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    userId: '01KMVYSHFWG0GS3AJSE8KG1QS0',
+    createdAt: '2026-04-04T10:00:00.000Z',
+    updatedAt: '2026-04-04T10:00:00.000Z',
+    items: [
+      {
+        id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+        cartId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        itemId: 'f0f70859-d779-488a-a774-df78b6ec677a',
+        quantity: 2,
+        customNote: null,
+        selectedSizeVariantId: '78488138-6f81-452c-9a7f-ac2c82cfefc9',
+        selectedSideOptionId: '48d24932-838e-4c7e-8c35-e8920afc7fad',
+        sizePrice: '12.90',
+        sidePrice: '0.00',
+        createdAt: '2026-04-04T10:00:00.000Z',
+        updatedAt: '2026-04-04T10:00:00.000Z',
+        item: {
+          id: 'f0f70859-d779-488a-a774-df78b6ec677a',
+          name: 'Smoky BBQ Bacon Burger',
+          imageUrl: 'https://example.com/image.jpg',
+          isAvailable: true,
+          allowCustomNote: true,
+          isSideFree: true,
+          isExtrasOptional: true,
+          hasSizeVariants: true,
+          hasExtras: true,
+          deletedAt: null,
+        },
+        selectedSizeVariant: {
+          id: '78488138-6f81-452c-9a7f-ac2c82cfefc9',
+          itemId: 'f0f70859-d779-488a-a774-df78b6ec677a',
+          size: 'REGULAR',
+          price: '12.90',
+        },
+        selectedSideOption: {
+          id: '48d24932-838e-4c7e-8c35-e8920afc7fad',
+          itemId: 'f0f70859-d779-488a-a774-df78b6ec677a',
+          name: 'Cajun seasoned fries',
+          price: '0.00',
+          isDefault: true,
+        },
+        selectedExtras: [],
+      },
+    ],
+  },
+};
