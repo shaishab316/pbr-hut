@@ -18,6 +18,7 @@ import { RiderModule } from './modules/rider/rider.module';
 import { ItemModule } from './modules/item/item.module';
 import { CategoryModule } from './modules/category/category.module';
 import { TagModule } from './modules/tag/tag.module';
+import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { TagModule } from './modules/tag/tag.module';
     ItemModule,
     CategoryModule,
     TagModule,
+    CartModule,
   ],
 })
 export class AppModule implements NestModule {
