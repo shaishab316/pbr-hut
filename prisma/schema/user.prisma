@@ -14,7 +14,8 @@ model User {
 
   riderProfile RiderProfile?
   cart         Cart?
-  orders       Order[]
+  orders       Order[] @relation("CustomerOrders")
+  riderAssignments Order[] @relation("AssignedRider")
 
   @@index([email])
   @@index([phone])

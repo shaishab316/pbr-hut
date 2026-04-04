@@ -5,6 +5,7 @@ import {
   ApiOperation,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { activeOrdersResponseExample } from './models/order-response.example';
 
 export const ApiListActiveOrders = () =>
   applyDecorators(
@@ -12,13 +13,23 @@ export const ApiListActiveOrders = () =>
     ApiOperation({
       summary: 'List active orders',
       description:
-        'Returns orders that are not yet completed or cancelled (e.g. preparing or out for delivery).',
+        'Returns orders that are still in progress for the authenticated user ' +
+        '(excludes terminal states: **DELIVERED**, **PICKED_UP**, **CANCELLED**). ' +
+        'Each order includes line items (with extras) and delivery address when applicable.',
     }),
-    ApiOkResponse({ description: 'Active orders' }),
+    ApiOkResponse({
+      description: 'Non-terminal orders, newest first',
+      schema: {
+        example: activeOrdersResponseExample,
+      },
+    }),
     ApiUnauthorizedResponse({
       description: 'Missing or invalid JWT',
       schema: {
-        example: { message: 'Unauthorized', statusCode: 401 },
+        example: {
+          message: 'Unauthorized',
+          statusCode: 401,
+        },
       },
     }),
   );

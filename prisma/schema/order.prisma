@@ -1,7 +1,14 @@
 model Order {
   id     String @id @default(uuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation("CustomerOrders", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Rider fulfilling this delivery (delivery orders only)
+  assignedRiderId String?
+  assignedRider   User?   @relation("AssignedRider", fields: [assignedRiderId], references: [id], onDelete: SetNull)
+
+  /// H3 cell (res 7, same as `RiderProfile.h3Index`) at drop-off lat/lng — for O(1) rider pool lookup
+  h3Index String?
 
   /// Short public reference for receipts and support (e.g. POGK4j524)
   orderNumber      String  @unique
@@ -35,6 +42,9 @@ model Order {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([h3Index])
+  @@index([assignedRiderId])
+  @@index([h3Index, status])
   @@map("orders")
 }
 

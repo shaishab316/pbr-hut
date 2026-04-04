@@ -12,6 +12,7 @@ import {
   Prisma,
   Size,
 } from '@prisma/client';
+import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { Pagination } from '@/common/types/pagination';
 import type { CartWithItems } from '@/modules/cart/repositories/cart.repository';
@@ -111,6 +112,15 @@ export class OrderService {
         ? new Date(Date.now() + ETA_MINUTES * 60 * 1000)
         : null;
 
+    let h3Index: string | undefined;
+    if (dto.type === OrderType.DELIVERY && dto.deliveryAddress) {
+      const lat = dto.deliveryAddress.latitude;
+      const lng = dto.deliveryAddress.longitude;
+      if (lat != null && lng != null) {
+        h3Index = H3IndexUtil.encodeH3(lat, lng);
+      }
+    }
+
     const order = await this.prisma.$transaction(async (tx) => {
       let orderNumber = generateOrderNumber();
       for (let attempt = 0; attempt < 24; attempt++) {
@@ -142,6 +152,7 @@ export class OrderService {
           taxes,
           totalAmount,
           estimatedArrivalAt,
+          h3Index,
           deliveryAddress:
             dto.type === OrderType.DELIVERY && dto.deliveryAddress
               ? {
