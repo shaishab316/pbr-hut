@@ -1,16 +1,23 @@
 import {
+  Body,
   Controller,
+  HttpCode,
+  HttpStatus,
+  Patch,
   Post,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { RiderService } from './rider.service';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { JwtGuard } from '@/common/guards';
+import { CurrentUser, Roles } from '@/common/decorators';
+import { JwtGuard, RolesGuard } from '@/common/guards';
 import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
 import type { SafeUser } from '@/common/types/safe-user.type';
-import { ApiUploadNid } from './docs/rider.docs';
+import { UpdateRiderLocationDto } from './dto/update-rider-location.dto';
+import { ApiUpdateRiderLocation, ApiUploadNid } from './docs/rider.docs';
 
 const NidUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -21,10 +28,23 @@ const NidUploadInterceptor = createFileUploadInterceptor({
   maxFileSize: 5 * 1024 * 1024,
 });
 
+@ApiTags('Rider')
 @UseGuards(JwtGuard)
 @Controller('rider')
 export class RiderController {
   constructor(private readonly riderService: RiderService) {}
+
+  @ApiUpdateRiderLocation()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.RIDER)
+  @Patch('location')
+  @HttpCode(HttpStatus.OK)
+  updateLocation(
+    @CurrentUser('id') userId: string,
+    @Body() dto: UpdateRiderLocationDto,
+  ) {
+    return this.riderService.updateLocation(userId, dto);
+  }
 
   @ApiUploadNid()
   @Post('nid')

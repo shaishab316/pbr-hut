@@ -19,6 +19,26 @@ export class RiderRepository {
     });
   }
 
+  upsertLocation(
+    userId: string,
+    coords: { latitude: number; longitude: number; h3Index: string },
+  ) {
+    return this.prisma.riderProfile.upsert({
+      where: { userId },
+      create: {
+        user: { connect: { id: userId } },
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        h3Index: coords.h3Index,
+      },
+      update: {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        h3Index: coords.h3Index,
+      },
+    });
+  }
+
   async getProfile(userId: string) {
     return this.prisma.riderProfile.findUnique({
       where: { userId },
