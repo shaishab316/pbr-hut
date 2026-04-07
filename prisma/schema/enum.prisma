@@ -50,3 +50,9 @@ enum OrderStatus {
   PICKED_UP // pickup completed
   CANCELLED
 }
+
+enum EarningStatus {
+  PENDING // rider has completed delivery but earnings not yet transferred
+  SETTLED // earnings have been transferred to rider
+  CANCELLED // order was cancelled or rejected, no earnings
+}

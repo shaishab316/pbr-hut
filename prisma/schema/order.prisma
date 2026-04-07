@@ -11,7 +11,7 @@ model Order {
   h3Index String?
 
   /// Short public reference for receipts and support (e.g. POGK4j524)
-  orderNumber      String  @unique
+  orderNumber      String @unique
   /// 4-digit code for the customer to share with the rider
   confirmationCode String
 
@@ -36,8 +36,9 @@ model Order {
   billingAddress  OrderBillingAddress? // usually set for CARD; optional snapshot for COD
   items           OrderItem[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  riderEarning RiderEarning?
 
   @@index([userId])
   @@index([status])

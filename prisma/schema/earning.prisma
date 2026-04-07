@@ -1,0 +1,20 @@
+model RiderEarning {
+  id      String @id @default(uuid())
+  riderId String
+
+  orderId String? @unique // one earning per order
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  deliveryFee Decimal @default(0) @db.Decimal(10, 2)
+  tip         Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2) // deliveryFee + tip
+
+  status    EarningStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  rider RiderProfile @relation(fields: [riderId], references: [userId], onDelete: Cascade)
+
+  @@index([riderId])
+  @@index([riderId, createdAt])
+  @@map("rider_earnings")
+}

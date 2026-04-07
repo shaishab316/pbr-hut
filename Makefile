@@ -31,3 +31,9 @@ pull-prod: ## Pull prod secrets to .env
 
 example-env: ## Generate .env.example from dev secrets (values removed)
 	esc open $(ENV)/dev --format dotenv | sed 's/=.*/=/' > .env.example
+
+shell-dev: ## Load dev envs into current shell
+	eval $$(esc open $(ENV)/dev --format shell)
+
+shell-prod: ## Load prod envs into current shell
+	eval $$(esc open $(ENV)/prod --format shell)
