@@ -4,11 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  OrderStatus,
-  OrderType,
-  Prisma,
-} from '@prisma/client';
+import { OrderStatus, OrderType, Prisma } from '@prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { RiderRepository } from '@/modules/rider/repositories/rider.repository';
@@ -45,11 +41,21 @@ const riderNearbyInclude = {
   deliveryAddress: true,
   items: {
     orderBy: { id: 'asc' as const },
-    include: { extras: { orderBy: { id: 'asc' as const } } },
+    include: {
+      extras: {
+        orderBy: { id: 'asc' as const },
+        omit: {
+          orderItemId: true,
+        },
+      },
+    },
   },
 } satisfies Prisma.OrderInclude;
 
-type NearbyRow = Prisma.OrderGetPayload<{ include: typeof riderNearbyInclude }>;
+type NearbyRow = Prisma.OrderGetPayload<{
+  include: typeof riderNearbyInclude;
+  omit: { confirmationCode: true };
+}>;
 
 @Injectable()
 export class RiderOrderService {
@@ -104,6 +110,7 @@ export class RiderOrderService {
         h3Index: { in: cells },
       },
       include: riderNearbyInclude,
+      omit: { confirmationCode: true }, //! should be hidden from the rider
       orderBy: { createdAt: 'asc' },
     });
 
@@ -136,9 +143,7 @@ export class RiderOrderService {
       }
       if (a.distanceKm != null) return -1;
       if (b.distanceKm != null) return 1;
-      return (
-        a.row.createdAt.getTime() - b.row.createdAt.getTime()
-      );
+      return a.row.createdAt.getTime() - b.row.createdAt.getTime();
     });
 
     return scored.map(({ row, distanceKm }) => ({
@@ -155,6 +160,7 @@ export class RiderOrderService {
         status: OrderStatus.OUT_FOR_DELIVERY,
       },
       include: orderDetailInclude,
+      omit: { confirmationCode: true }, //! should be hidden from the rider
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -219,7 +225,9 @@ export class RiderOrderService {
       throw new NotFoundException('Order not found');
     }
     if (order.type !== OrderType.DELIVERY) {
-      throw new BadRequestException('Only delivery orders can be accepted by riders');
+      throw new BadRequestException(
+        'Only delivery orders can be accepted by riders',
+      );
     }
     if (order.assignedRiderId != null) {
       throw new BadRequestException('Order already assigned to a rider');
@@ -230,7 +238,9 @@ export class RiderOrderService {
 
     const profile = await this.riderRepo.getProfile(riderId);
     if (!profile?.h3Index) {
-      throw new BadRequestException('Set your rider H3 location before accepting orders');
+      throw new BadRequestException(
+        'Set your rider H3 location before accepting orders',
+      );
     }
 
     if (order.h3Index) {
@@ -272,11 +282,7 @@ export class RiderOrderService {
     };
   }
 
-  async deliverOrder(
-    riderId: string,
-    orderId: string,
-    dto: DeliverOrderInput,
-  ) {
+  async deliverOrder(riderId: string, orderId: string, dto: DeliverOrderInput) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, assignedRiderId: riderId },
       select: {

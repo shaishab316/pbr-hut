@@ -36,7 +36,7 @@ function generateOrderNumber(): string {
   const buf = randomBytes(ORDER_NUMBER_LEN);
   let s = '';
   for (let i = 0; i < ORDER_NUMBER_LEN; i++) {
-    s += ORDER_NUMBER_ALPHABET[buf[i]! % ORDER_NUMBER_ALPHABET.length]!;
+    s += ORDER_NUMBER_ALPHABET[buf[i] % ORDER_NUMBER_ALPHABET.length];
   }
   return s;
 }
@@ -232,8 +232,7 @@ export class OrderService {
       query.page,
       query.limit,
     );
-    const totalPages =
-      query.limit > 0 ? Math.ceil(total / query.limit) : 0;
+    const totalPages = query.limit > 0 ? Math.ceil(total / query.limit) : 0;
 
     return {
       message: 'Success',
