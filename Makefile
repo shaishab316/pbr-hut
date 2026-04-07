@@ -33,7 +33,7 @@ example-env: ## Generate .env.example from dev secrets (values removed)
 	esc open $(ENV)/dev --format dotenv | sed 's/=.*/=/' > .env.example
 
 shell-dev: ## Load dev envs into current shell
-	eval $$(esc open $(ENV)/dev --format shell)
+	@eval $$(esc open $(ENV)/dev --format shell) && export PS1="(dev) $$PS1" && exec $$SHELL
 
 shell-prod: ## Load prod envs into current shell
-	eval $$(esc open $(ENV)/prod --format shell)
+	@eval $$(esc open $(ENV)/prod --format shell) && export PS1="(prod) $$PS1" && exec $$SHELL
