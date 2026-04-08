@@ -1,7 +1,11 @@
-import { RedisService } from '@/modules/redis/redis.service';
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { type Prisma, UserRole } from '@prisma/client';
+import { RedisService } from '@/modules/redis/redis.service';
 import type { SignUpInput } from '../dto/sign-up.dto';
+
+const TTL_UNVERIFIED_USER = 15 * 60; // 15 minutes
+const TTL_PASSWORD_RESET = 10 * 60; // 10 minutes
 
 export type SignupData = Pick<
   Prisma.UserCreateInput,
@@ -15,58 +19,53 @@ export type UnverifiedUser = SignupData & {
 export type UnverifiedRider = SignupData & {
   latitude: number;
   longitude: number;
-
   role: typeof UserRole.RIDER;
 };
+
+export type UnverifiedEntity = UnverifiedUser | UnverifiedRider;
 
 @Injectable()
 export class AuthCacheRepository {
   constructor(private readonly redis: RedisService) {}
 
-  async saveUnverifiedUser<T extends UnverifiedUser | UnverifiedRider>(
+  async saveUnverifiedUser<T extends UnverifiedEntity>(
     identifier: string,
     userData: T,
-  ) {
-    return this.redis.setex(
-      `unverified:${identifier}`,
-      900, //? 15 minutes
-      JSON.stringify(userData),
+  ): Promise<void> {
+    await this.redis.set(
+      (ctx) => ctx.AUTH.UNVERIFIED_USER(identifier),
+      userData,
+      TTL_UNVERIFIED_USER,
     );
   }
 
-  async getUnverifiedUser<T extends UnverifiedUser | UnverifiedRider>(
+  async getUnverifiedUser<T extends UnverifiedEntity>(
     identifier: string,
   ): Promise<T | null> {
-    const data = await this.redis.get(`unverified:${identifier}`);
-
-    if (!data) return null;
-
-    try {
-      return JSON.parse(data) as T;
-    } catch {
-      //? Delete corrupted cache entry
-      await this.redis.del(`unverified:${identifier}`);
-      return null;
-    }
+    return this.redis.get<T>((ctx) => ctx.AUTH.UNVERIFIED_USER(identifier));
   }
 
   async deleteUnverifiedUser(identifier: string): Promise<void> {
-    await this.redis.del(`unverified:${identifier}`);
+    await this.redis.del((ctx) => ctx.AUTH.UNVERIFIED_USER(identifier));
   }
 
   async saveResetPasswordNonce(userId: string): Promise<string> {
-    const nonce = crypto.randomUUID();
+    const nonce = randomUUID();
 
-    await this.redis.setex(`pwd-reset:${userId}`, 600, nonce); //? 10 minutes
+    await this.redis.set(
+      (ctx) => ctx.AUTH.PASSWORD_RESET(userId),
+      nonce,
+      TTL_PASSWORD_RESET,
+    );
 
     return nonce;
   }
 
   async getResetPasswordNonce(userId: string): Promise<string | null> {
-    return this.redis.get(`pwd-reset:${userId}`);
+    return this.redis.get<string>((ctx) => ctx.AUTH.PASSWORD_RESET(userId));
   }
 
   async deleteResetPasswordNonce(userId: string): Promise<void> {
-    await this.redis.del(`pwd-reset:${userId}`);
+    await this.redis.del((ctx) => ctx.AUTH.PASSWORD_RESET(userId));
   }
 }
