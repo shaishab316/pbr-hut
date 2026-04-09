@@ -1,12 +1,16 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { AddCartItemInput } from './dto/add-cart-item.dto';
 import type { UpdateCartItemInput } from './dto/update-cart-item.dto';
 import { CartRepository } from './repositories/cart.repository';
+import { DeliveryFeeDto } from './dto/delivery-fee.dto';
+import { RestaurantCacheRepository } from '../restaurant/repositories/restaurant.cache.repository';
+import { calculateDistanceInKm } from '@/common/helpers';
 
 function normalizeNote(note: string | null | undefined): string {
   if (note == null || note.trim() === '') return '';
@@ -19,7 +23,10 @@ function sortIds(ids: string[]): string[] {
 
 @Injectable()
 export class CartService {
-  constructor(private readonly cartRepo: CartRepository) {}
+  constructor(
+    private readonly cartRepo: CartRepository,
+    private readonly restaurantCacheRepo: RestaurantCacheRepository,
+  ) {}
 
   async getCart(userId: string) {
     const data = await this.cartRepo.findCartWithItemsByUserId(userId);
@@ -246,6 +253,94 @@ export class CartService {
     const row = await this.cartRepo.findCartItemIdIfOwned(userId, cartItemId);
     if (!row) {
       throw new NotFoundException('Cart item not found');
+    }
+  }
+
+  async getDeliveryFee(userId: string, dto: DeliveryFeeDto) {
+    // 1. Fetch Data
+    const [cart, restaurant] = await Promise.all([
+      this.cartRepo.findCartWithItemsByUserId(userId),
+      this.restaurantCacheRepo.getPrimary(),
+    ]);
+
+    // 2. Validate Restaurant Existence & Location (SRP: Guard Clause)
+    if (
+      !restaurant ||
+      restaurant.latitude == null ||
+      restaurant.longitude == null
+    ) {
+      throw new InternalServerErrorException(
+        'Restaurant data or location unavailable',
+      );
+    }
+
+    // 3. Calculate Distance
+    const distance = calculateDistanceInKm(
+      { lat: restaurant.latitude, lon: restaurant.longitude },
+      { lat: dto.latitude, lon: dto.longitude },
+    );
+
+    // 4. Validate Delivery Radius (SRP: Extracted Validation)
+    this.validateDeliveryDistance(distance, restaurant.deliveryRadius);
+
+    // 5. Calculate Cart Total (SRP: Extracted Calculation)
+    const cartTotal = this.calculateCartTotal(cart.items);
+
+    // 6. Validate Minimum Order (KISS: Direct comparison using DB config)
+    if (cartTotal.lessThan(restaurant.minimumOrderAmountCOD)) {
+      throw new BadRequestException(
+        `Minimum order amount is ${restaurant.minimumOrderAmountCOD.toString()}`,
+      );
+    }
+
+    // 7. Return Fee (KISS: Using base fee from DB)
+    // Note: You can add complex logic here later (e.g., distance multipliers)
+    // without breaking the single responsibility of the main function.
+    return {
+      distance: parseFloat(distance.toFixed(2)),
+      deliveryFee: restaurant.baseDeliveryFee.toNumber(),
+      currency: 'USD', // Or fetch from restaurant config if available
+    };
+  }
+
+  /**
+   * Calculates the total price of items in the cart.
+   * Handles Size Variants, Side Options, and Extras.
+   */
+  private calculateCartTotal(
+    items: NonNullable<
+      Awaited<
+        ReturnType<(typeof this.cartRepo)['findCartWithItemsByUserId']>
+      >['items']
+    >,
+  ): Prisma.Decimal {
+    return items.reduce((total, item) => {
+      let itemPrice = item.selectedSizeVariant?.price || new Prisma.Decimal(0);
+
+      if (item.selectedSideOption) {
+        itemPrice = itemPrice.plus(item.selectedSideOption.price);
+      }
+
+      if (item.selectedExtras?.length) {
+        const extrasSum = item.selectedExtras.reduce(
+          (sum, extra) => sum.plus(extra.price),
+          new Prisma.Decimal(0),
+        );
+        itemPrice = itemPrice.plus(extrasSum);
+      }
+
+      return total.plus(itemPrice);
+    }, new Prisma.Decimal(0));
+  }
+
+  /**
+   * Validates if the delivery distance is within the restaurant's radius.
+   */
+  private validateDeliveryDistance(distance: number, maxRadius: number): void {
+    if (distance > maxRadius) {
+      throw new BadRequestException(
+        'Sorry, we do not deliver to this location.',
+      );
     }
   }
 }

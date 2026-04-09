@@ -1,10 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import {
-  DeliveryTiming,
-  OrderType,
-  PaymentMethod,
-} from '@prisma/client';
+import { DeliveryTiming, OrderType, PaymentMethod } from '@prisma/client';
 
 const DeliveryAddressSchema = z.object({
   locationLabel: z.string().max(200).optional().nullable(),

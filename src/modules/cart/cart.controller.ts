@@ -24,6 +24,7 @@ import {
   ApiRemoveCartItem,
   ApiUpdateCartItem,
 } from './docs';
+import { DeliveryFeeDto } from './dto/delivery-fee.dto';
 
 @ApiTags('Cart')
 @UseGuards(JwtGuard)
@@ -69,5 +70,18 @@ export class CartController {
   @HttpCode(HttpStatus.OK)
   clearCart(@CurrentUser('id') userId: string) {
     return this.cartService.clearCart(userId);
+  }
+
+  @Get('delivery-fee')
+  async getDeliveryFee(
+    @CurrentUser('id') userId: string,
+    @Body() dto: DeliveryFeeDto,
+  ) {
+    const data = await this.cartService.getDeliveryFee(userId, dto);
+
+    return {
+      message: 'Delivery fee calculated successfully',
+      data,
+    };
   }
 }
