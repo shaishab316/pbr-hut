@@ -21,6 +21,7 @@ import { TagModule } from './modules/tag/tag.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrderModule } from './modules/order/order.module';
 import { RestaurantModule } from './modules/restaurant/restaurant.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { RestaurantModule } from './modules/restaurant/restaurant.module';
     CartModule,
     OrderModule,
     RestaurantModule,
+    AdminModule,
   ],
 })
 export class AppModule implements NestModule {
