@@ -25,7 +25,6 @@ import {
 import type { CreateOrderInput } from './dto/create-order.dto';
 import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
 
-const DEFAULT_DELIVERY_CHARGE = new Prisma.Decimal('5.00');
 const ETA_MINUTES = 15;
 const CANCEL_WINDOW_MS = 10 * 60 * 1000;
 
@@ -98,10 +97,17 @@ export class OrderService {
     }
 
     const taxes = new Prisma.Decimal(0);
-    const deliveryCharge =
-      dto.type === OrderType.DELIVERY
-        ? DEFAULT_DELIVERY_CHARGE
-        : new Prisma.Decimal(0);
+    let deliveryCharge = new Prisma.Decimal(0);
+
+    if (dto.type === OrderType.DELIVERY) {
+      const feeData = await this.cartService.getDeliveryFee(userId, {
+        latitude: dto.deliveryAddress!.latitude,
+        longitude: dto.deliveryAddress!.longitude,
+      });
+
+      deliveryCharge = new Prisma.Decimal(feeData.deliveryFee.toString());
+    }
+
     const totalAmount = itemsTotal.add(taxes).add(deliveryCharge);
 
     const scheduledAt =

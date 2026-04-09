@@ -8,8 +8,8 @@ const DeliveryAddressSchema = z.object({
   phoneNumber: z.string().min(5).max(32),
   address: z.string().min(1).max(500),
   buildingDetail: z.string().max(200).optional().nullable(),
-  latitude: z.number().finite().optional().nullable(),
-  longitude: z.number().finite().optional().nullable(),
+  latitude: z.number().finite(),
+  longitude: z.number().finite(),
 });
 
 const BillingAddressSchema = z.object({

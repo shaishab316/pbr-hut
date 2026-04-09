@@ -291,7 +291,6 @@ export class CartService {
       );
     }
 
-    // 7. Return Fee (KISS: Using base fee from DB)
     // Note: You can add complex logic here later (e.g., distance multipliers)
     // without breaking the single responsibility of the main function.
     return {
