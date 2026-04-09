@@ -29,7 +29,7 @@ export const QueryOrdersSchema = z.object({
     orderSortKeys.flatMap((k) => [
       `+${k}`,
       `-${k}`,
-    ]) as `${'-' | '+'}${keyof Order}`[],
+    ]) as Array<`${'-' | '+'}${keyof Order}`>,
   ),
 });
 

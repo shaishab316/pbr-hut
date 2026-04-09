@@ -2,12 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { AdminDashboardRepository } from './repositories/dashboard.repository';
 import { OrderRepository } from '@/modules/order/repositories/order.repository';
 import { QueryOrdersDto } from './dto/query-order.dto';
+import { RiderRepository } from '@/modules/rider/repositories/rider.repository';
+import { QueryRiderDto } from './dto/query-rider.dto';
 
 @Injectable()
 export class AdminDashboardService {
   constructor(
     private readonly adminDashboardRepository: AdminDashboardRepository,
     private readonly orderRepository: OrderRepository,
+    private readonly riderRepository: RiderRepository,
   ) {}
 
   async getSummary() {
@@ -50,5 +53,9 @@ export class AdminDashboardService {
 
   getAllOrders(params: QueryOrdersDto) {
     return this.orderRepository.getAllOrders(params);
+  }
+
+  getAllRiders(params: QueryRiderDto) {
+    return this.riderRepository.getAllRiders(params);
   }
 }

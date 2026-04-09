@@ -11,6 +11,7 @@ import { JwtGuard } from '@/common/guards';
 import { AdminDashboardService } from './admin-dashboard.service';
 import { QueryOrdersDto } from './dto/query-order.dto';
 import { Pagination } from '@/common/types/pagination';
+import { QueryRiderDto } from './dto/query-rider.dto';
 
 @ApiTags('Admin — Dashboard')
 @ApiBearerAuth()
@@ -42,6 +43,22 @@ export class AdminDashboardController {
         totalPages: Math.ceil(total / dto.limit),
       } satisfies Pagination,
       data: orders,
+    };
+  }
+
+  @Get('/admin/riders')
+  async getAllRiders(@Query() dto: QueryRiderDto) {
+    const [riders, total] = await this.adminDashboardService.getAllRiders(dto);
+
+    return {
+      message: 'Riders retrieved successfully',
+      pagination: {
+        limit: dto.limit,
+        page: dto.page,
+        total,
+        totalPages: Math.ceil(total / dto.limit),
+      } satisfies Pagination,
+      data: riders,
     };
   }
 }

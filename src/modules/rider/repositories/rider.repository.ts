@@ -1,6 +1,11 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
+import {
+  QueryRiderDto,
+  RIDER_PROFILE_SORT_KEYS,
+} from '@/modules/admin/dashboard/dto/query-rider.dto';
+import { userSearchableFields } from '@/modules/user/user.constant';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { NidStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class RiderRepository {
@@ -62,5 +67,47 @@ export class RiderRepository {
     return this.prisma.riderProfile.findUnique({
       where: { userId },
     });
+  }
+
+  async getAllRiders(dto: QueryRiderDto) {
+    const { page, limit, search, status, orderBy } = dto;
+
+    const whereClause: Prisma.RiderProfileWhereInput = {};
+
+    if (search) {
+      whereClause.user = {
+        OR: userSearchableFields.map((field) => ({
+          [field]: { contains: search, mode: 'insensitive' },
+        })),
+      };
+    }
+
+    if (status === 'active') {
+      whereClause.nidStatus = NidStatus.VERIFIED;
+    } else {
+      whereClause.nidStatus = { not: NidStatus.VERIFIED };
+    }
+
+    const [orderByOrder, ...rest] = orderBy;
+    const orderByField = rest.join('');
+    const direction = orderByOrder === '+' ? 'asc' : 'desc';
+
+    const orderByClause: Prisma.RiderProfileOrderByWithRelationInput =
+      RIDER_PROFILE_SORT_KEYS.has(orderByField)
+        ? { [orderByField]: direction }
+        : { user: { [orderByField]: direction } };
+
+    return this.prisma.$transaction([
+      this.prisma.riderProfile.findMany({
+        where: whereClause,
+        include: {
+          user: { omit: { passwordHash: true } },
+        },
+        orderBy: orderByClause,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.riderProfile.count({ where: whereClause }),
+    ]);
   }
 }
