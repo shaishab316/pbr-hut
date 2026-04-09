@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { DeliveryTiming, Order, OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
+import type { QueryOrdersDto } from '@/modules/admin/dashboard/dto/query-order.dto';
 
 export const orderListInclude = {
   deliveryAddress: true,
@@ -61,6 +62,39 @@ export class OrderRepository {
         skip,
         take: limit,
         include: orderListInclude,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+  }
+
+  async getAllOrders({
+    limit,
+    page,
+    status,
+    orderBy,
+  }: QueryOrdersDto): Promise<[Order[], number]> {
+    const where: Prisma.OrderWhereInput = {};
+
+    if (status === 'SCHEDULED') {
+      where.deliveryTiming = DeliveryTiming.SCHEDULED;
+    } else if (status) {
+      where.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const orderByClause: Prisma.OrderOrderByWithRelationInput | undefined =
+      orderBy
+        ? { [orderBy.substring(1)]: orderBy.startsWith('-') ? 'desc' : 'asc' }
+        : undefined;
+
+    return this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where,
+        include: orderListInclude,
+        orderBy: orderByClause,
+        skip,
+        take: limit,
       }),
       this.prisma.order.count({ where }),
     ]);

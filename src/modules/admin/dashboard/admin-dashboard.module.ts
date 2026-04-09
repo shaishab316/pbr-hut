@@ -3,10 +3,11 @@ import { PrismaModule } from '@/infra/prisma/prisma.module';
 import { AdminDashboardController } from './admin-dashboard.controller';
 import { AdminDashboardService } from './admin-dashboard.service';
 import { AdminDashboardRepository } from './repositories/dashboard.repository';
+import { OrderRepository } from '@/modules/order/repositories/order.repository';
 
 @Module({
   imports: [PrismaModule],
   controllers: [AdminDashboardController],
-  providers: [AdminDashboardService, AdminDashboardRepository],
+  providers: [AdminDashboardService, AdminDashboardRepository, OrderRepository],
 })
 export class AdminDashboardModule {}
