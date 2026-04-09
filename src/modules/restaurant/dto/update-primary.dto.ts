@@ -5,11 +5,11 @@ export const updatePrimaryRestaurantSchema = z.object({
   name: z.string('Name is required'),
 
   address: z.string('Address is required'),
-  latitude: z
+  latitude: z.coerce
     .number('Latitude is required')
     .min(-90, 'Latitude must be between -90 and 90')
     .max(90, 'Latitude must be between -90 and 90'),
-  longitude: z
+  longitude: z.coerce
     .number('Longitude is required')
     .min(-180, 'Longitude must be between -180 and 180')
     .max(180, 'Longitude must be between -180 and 180'),
@@ -24,11 +24,11 @@ export const updatePrimaryRestaurantSchema = z.object({
     return regex.test(val);
   }, 'Closing hour must be in the format HH:mm'),
 
-  deliveryRadius: z
+  deliveryRadius: z.coerce
     .number('Delivery radius is required')
     .min(0, 'Delivery radius must be a positive number'),
 
-  baseDeliveryFee: z
+  baseDeliveryFee: z.coerce
     .number('Base delivery fee is required')
     .min(0, 'Base delivery fee must be a positive number'),
 

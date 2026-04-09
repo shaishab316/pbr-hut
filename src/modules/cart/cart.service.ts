@@ -30,10 +30,8 @@ export class CartService {
 
   async getCart(userId: string) {
     const data = await this.cartRepo.findCartWithItemsByUserId(userId);
-    return {
-      message: 'Success',
-      data,
-    };
+
+    return data;
   }
 
   private async validateItemForCart(dto: AddCartItemInput) {
@@ -298,8 +296,8 @@ export class CartService {
     // without breaking the single responsibility of the main function.
     return {
       distance: parseFloat(distance.toFixed(2)),
-      deliveryFee: restaurant.baseDeliveryFee.toNumber(),
-      currency: 'USD', // Or fetch from restaurant config if available
+      deliveryFee: restaurant.baseDeliveryFee,
+      currency: 'USD',
     };
   }
 
