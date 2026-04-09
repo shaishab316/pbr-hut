@@ -21,7 +21,7 @@ import { JwtPayload } from '@/common/strategies/jwt.strategy';
 import { ForgotPasswordInput } from './dto/forgot-password.dto';
 import { SafeUser } from '@/common/types/safe-user.type';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { RiderSignUpInput } from './dto/rider-sign-up.dto';
+import { RiderSignUpDto } from './dto/rider-sign-up.dto';
 import { UserRole } from '@prisma/client';
 import { RiderRepository } from '../rider/repositories/rider.repository';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
@@ -293,25 +293,31 @@ export class AuthService {
     return { message: 'Password reset successful' };
   }
 
-  async riderSignUp(signUpDto: RiderSignUpInput) {
-    const strategy = this.contactStrategyFactory.resolve(
-      signUpDto.identifierType,
-    );
+  async riderSignUp(signUpDto: RiderSignUpDto) {
+    const strategy = this.contactStrategyFactory.resolve('email');
 
-    const existingUser = await strategy.findExistingUser(signUpDto);
+    const existingUser = await strategy.findExistingUser({
+      ...signUpDto,
+      identifierType: 'email',
+    });
+
     if (existingUser) {
       throw new BadRequestException(
         'Already have an account with this identifier, please login instead',
       );
     }
 
-    const identifier = strategy.getIdentifier(signUpDto);
+    const identifier = strategy.getIdentifier({
+      ...signUpDto,
+      identifierType: 'email',
+    });
 
     const unverifiedUser = {
       role: UserRole.RIDER,
 
       name: signUpDto.name,
-      ...strategy.buildContactFields(signUpDto),
+      email: signUpDto.email,
+      phone: signUpDto.phone,
       passwordHash: await hashPassword(signUpDto.password),
       createdAt: new Date(),
 
@@ -319,7 +325,7 @@ export class AuthService {
       longitude: signUpDto.longitude,
 
       //? We need this to know which strategy to use when resending OTP or verifying from cache
-      identifierType: signUpDto.identifierType,
+      identifierType: 'email',
     } satisfies UnverifiedRider;
 
     await this.authCacheRepo.saveUnverifiedUser(identifier, unverifiedUser);
