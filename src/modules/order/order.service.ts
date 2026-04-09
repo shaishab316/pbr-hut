@@ -28,6 +28,7 @@ import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
 const ETA_MINUTES = 15;
 const CANCEL_WINDOW_MS = 10 * 60 * 1000;
 
+// cspell:disable-next-line
 const ORDER_NUMBER_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ORDER_NUMBER_LEN = 9;
 
@@ -101,8 +102,8 @@ export class OrderService {
 
     if (dto.type === OrderType.DELIVERY) {
       const feeData = await this.cartService.getDeliveryFee(userId, {
-        latitude: dto.deliveryAddress!.latitude,
-        longitude: dto.deliveryAddress!.longitude,
+        latitude: dto.deliveryAddress.latitude,
+        longitude: dto.deliveryAddress.longitude,
       });
 
       deliveryCharge = new Prisma.Decimal(feeData.deliveryFee.toString());
@@ -111,7 +112,7 @@ export class OrderService {
     const totalAmount = itemsTotal.add(taxes).add(deliveryCharge);
 
     const scheduledAt =
-      dto.deliveryTiming === DeliveryTiming.SCHEDULED ? dto.scheduledAt! : null;
+      dto.deliveryTiming === DeliveryTiming.SCHEDULED ? dto.scheduledAt : null;
 
     const estimatedArrivalAt =
       dto.type === OrderType.DELIVERY

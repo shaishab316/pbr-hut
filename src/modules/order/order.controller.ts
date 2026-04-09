@@ -14,7 +14,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@/common/decorators';
 import { JwtGuard } from '@/common/guards';
 import { OrderService } from './order.service';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderInput } from './dto/create-order.dto';
 import { QueryOrderHistoryDto } from './dto/query-order-history.dto';
 import {
   ApiCancelOrder,
@@ -35,7 +35,7 @@ export class OrderController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@CurrentUser('id') userId: string, @Body() dto: CreateOrderDto) {
-    return this.orderService.create(userId, dto);
+    return this.orderService.create(userId, dto as unknown as CreateOrderInput);
   }
 
   @ApiListActiveOrders()

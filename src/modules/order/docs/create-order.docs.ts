@@ -7,11 +7,17 @@ import {
   ApiExtraModels,
   ApiOperation,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import {
-  CreateOrderRequestModel,
+  DeliveryOrderCardModel,
+  DeliveryOrderCardScheduledModel,
+  DeliveryOrderCashModel,
+  DeliveryOrderCashScheduledModel,
   OrderBillingAddressBodyModel,
   OrderDeliveryAddressBodyModel,
+  PickupOrderCardModel,
+  PickupOrderCashModel,
 } from './models/create-order.model';
 import { createOrderResponseExample } from './models/order-response.example';
 
@@ -29,12 +35,35 @@ export const ApiCreateOrder = () =>
         'Card payments are stored as `paymentStatus: UNPAID` until a gateway marks them paid.',
     }),
     ApiExtraModels(
-      CreateOrderRequestModel,
       OrderDeliveryAddressBodyModel,
       OrderBillingAddressBodyModel,
+      DeliveryOrderCashModel,
+      DeliveryOrderCardModel,
+      DeliveryOrderCashScheduledModel,
+      DeliveryOrderCardScheduledModel,
+      PickupOrderCashModel,
+      PickupOrderCardModel,
     ),
     ApiBody({
-      type: CreateOrderRequestModel,
+      description:
+        'Discriminated by `type` → `paymentMethod` → `deliveryTiming`',
+      schema: {
+        oneOf: [
+          { $ref: getSchemaPath(DeliveryOrderCashModel) },
+          { $ref: getSchemaPath(DeliveryOrderCardModel) },
+          { $ref: getSchemaPath(DeliveryOrderCashScheduledModel) },
+          { $ref: getSchemaPath(DeliveryOrderCardScheduledModel) },
+          { $ref: getSchemaPath(PickupOrderCashModel) },
+          { $ref: getSchemaPath(PickupOrderCardModel) },
+        ],
+        discriminator: {
+          propertyName: 'type',
+          mapping: {
+            DELIVERY: getSchemaPath(DeliveryOrderCashModel), // representative
+            PICKUP: getSchemaPath(PickupOrderCashModel), // representative
+          },
+        },
+      },
       examples: {
         deliveryCash: {
           summary: 'Delivery · cash on delivery',
@@ -88,13 +117,27 @@ export const ApiCreateOrder = () =>
             },
           },
         },
+        deliveryScheduled: {
+          summary: 'Delivery · scheduled · cash',
+          value: {
+            type: 'DELIVERY',
+            deliveryTiming: 'SCHEDULED',
+            scheduledAt: '2025-04-15T14:00:00.000Z',
+            paymentMethod: 'CASH_ON_DELIVERY',
+            deliveryAddress: {
+              name: 'Harrison Elliot',
+              phoneNumber: '+8801712000000',
+              address: '49 Bir Uttam AK Khandakar Rd, Dhaka 1212',
+              latitude: 23.8103,
+              longitude: 90.4125,
+            },
+          },
+        },
       },
     }),
     ApiCreatedResponse({
       description: 'Order created and cart cleared',
-      schema: {
-        example: createOrderResponseExample,
-      },
+      schema: { example: createOrderResponseExample },
     }),
     ApiBadRequestResponse({
       description:
@@ -110,10 +153,7 @@ export const ApiCreateOrder = () =>
     ApiUnauthorizedResponse({
       description: 'Missing or invalid JWT',
       schema: {
-        example: {
-          message: 'Unauthorized',
-          statusCode: 401,
-        },
+        example: { message: 'Unauthorized', statusCode: 401 },
       },
     }),
   );

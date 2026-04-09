@@ -1,105 +1,186 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  DeliveryTiming,
-  OrderType,
-  PaymentMethod,
-} from '@prisma/client';
+import { DeliveryTiming, OrderType, PaymentMethod } from '@prisma/client';
 
-/** Request body for `POST /orders` — mirrors validation in `CreateOrderDto` (Zod). */
+// ─── Address Models ───────────────────────────────────────────────────────────
+
 export class OrderDeliveryAddressBodyModel {
   @ApiPropertyOptional({
+    maxLength: 200,
     example: 'Bir Uttam AK Khandakar Road',
-    description: 'Short map / street label shown above the pin',
   })
-  locationLabel?: string | null;
+  locationLabel?: string;
 
-  @ApiProperty({ example: 'Harrison Elliot' })
+  @ApiProperty({ minLength: 1, maxLength: 120, example: 'Harrison Elliot' })
   name!: string;
 
-  @ApiProperty({ example: '+8801712000000' })
+  @ApiProperty({
+    description: 'E.164 international phone number',
+    pattern: '^\\+?[1-9]\\d{1,14}$',
+    example: '+8801712000000',
+  })
   phoneNumber!: string;
 
   @ApiProperty({
+    minLength: 1,
+    maxLength: 500,
     example: '49 Bir Uttam AK Khandakar Rd, Dhaka 1212',
   })
   address!: string;
 
-  @ApiPropertyOptional({ example: 'Apt 4B' })
-  buildingDetail?: string | null;
+  @ApiPropertyOptional({ maxLength: 200, example: 'Apt 4B' })
+  buildingDetail?: string;
 
-  @ApiPropertyOptional({ example: 23.8103 })
-  latitude?: number | null;
+  @ApiProperty({ minimum: -90, maximum: 90, example: 23.8103 })
+  latitude!: number;
 
-  @ApiPropertyOptional({ example: 90.4125 })
-  longitude?: number | null;
+  @ApiProperty({ minimum: -180, maximum: 180, example: 90.4125 })
+  longitude!: number;
 }
 
 export class OrderBillingAddressBodyModel {
-  @ApiProperty({ example: 'Bangladesh' })
+  @ApiProperty({ maxLength: 120, example: 'Bangladesh' })
   country!: string;
 
-  @ApiProperty({ example: '49 Bir Uttam AK Khandakar Rd' })
+  @ApiProperty({ maxLength: 200, example: '49 Bir Uttam AK Khandakar Rd' })
   addressLine1!: string;
 
-  @ApiPropertyOptional({ example: 'Building A' })
+  @ApiPropertyOptional({ maxLength: 200, nullable: true, example: null })
   addressLine2?: string | null;
 
-  @ApiProperty({ example: 'Gulshan' })
+  @ApiProperty({ maxLength: 120, example: 'Gulshan' })
   suburb!: string;
 
-  @ApiProperty({ example: 'Dhaka' })
+  @ApiProperty({ maxLength: 120, example: 'Dhaka' })
   city!: string;
 
-  @ApiProperty({ example: '1212' })
+  @ApiProperty({ maxLength: 20, example: '1212' })
   postalCode!: string;
 
-  @ApiProperty({ example: 'Dhaka Division' })
+  @ApiProperty({ maxLength: 120, example: 'Dhaka Division' })
   state!: string;
 }
 
-export class CreateOrderRequestModel {
-  @ApiProperty({
-    enum: OrderType,
-    enumName: 'OrderType',
-    example: OrderType.DELIVERY,
-    description: '`DELIVERY` requires `deliveryAddress`; `PICKUP` must omit it.',
-  })
-  type!: OrderType;
+// ─── Timing Mixin Models ──────────────────────────────────────────────────────
 
-  @ApiProperty({
-    enum: DeliveryTiming,
-    enumName: 'DeliveryTiming',
-    example: DeliveryTiming.NOW,
-    default: DeliveryTiming.NOW,
-  })
-  deliveryTiming!: DeliveryTiming;
+class NowTimingModel {
+  @ApiProperty({ enum: [DeliveryTiming.NOW], default: DeliveryTiming.NOW })
+  deliveryTiming!: typeof DeliveryTiming.NOW;
 
   @ApiPropertyOptional({
-    type: String,
+    description: 'Ignored when deliveryTiming is NOW',
     format: 'date-time',
-    description: 'Required when `deliveryTiming` is `SCHEDULED`',
-    example: '2026-04-04T18:30:00.000Z',
+    nullable: true,
   })
-  scheduledAt?: Date | null;
+  scheduledAt?: string | null;
+}
+
+class ScheduledTimingModel {
+  @ApiProperty({ enum: [DeliveryTiming.SCHEDULED] })
+  deliveryTiming!: typeof DeliveryTiming.SCHEDULED;
 
   @ApiProperty({
-    enum: PaymentMethod,
-    enumName: 'PaymentMethod',
-    example: PaymentMethod.CASH_ON_DELIVERY,
-    description:
-      'Use `CASH_ON_DELIVERY` for delivery, `CASH_ON_PICKUP` for pickup, `CARD` for pay-now (billing required).',
+    description: 'Required when deliveryTiming is SCHEDULED (ISO-8601)',
+    format: 'date-time',
+    example: '2025-04-15T14:00:00.000Z',
   })
-  paymentMethod!: PaymentMethod;
+  scheduledAt!: string;
+}
 
-  @ApiPropertyOptional({
-    type: OrderDeliveryAddressBodyModel,
-    description: 'Required when `type` is `DELIVERY`',
-  })
-  deliveryAddress?: OrderDeliveryAddressBodyModel | null;
+// ─── Branch Models ────────────────────────────────────────────────────────────
+// One class per (type × paymentMethod × timing) combination that is valid.
+// Swagger oneOf references these, giving accurate per-branch docs.
+
+// DELIVERY + CASH_ON_DELIVERY
+export class DeliveryOrderCashModel extends NowTimingModel {
+  @ApiProperty({ enum: [OrderType.DELIVERY] })
+  type!: typeof OrderType.DELIVERY;
+
+  @ApiProperty({ enum: [PaymentMethod.CASH_ON_DELIVERY] })
+  paymentMethod!: typeof PaymentMethod.CASH_ON_DELIVERY;
+
+  @ApiProperty({ type: OrderDeliveryAddressBodyModel })
+  deliveryAddress!: OrderDeliveryAddressBodyModel;
 
   @ApiPropertyOptional({
     type: OrderBillingAddressBodyModel,
-    description: 'Required when `paymentMethod` is `CARD`',
+    nullable: true,
+    description: 'Optional for cash orders',
   })
   billing?: OrderBillingAddressBodyModel | null;
 }
+
+// DELIVERY + CARD (billing required)
+export class DeliveryOrderCardModel extends NowTimingModel {
+  @ApiProperty({ enum: [OrderType.DELIVERY] })
+  type!: typeof OrderType.DELIVERY;
+
+  @ApiProperty({ enum: [PaymentMethod.CARD] })
+  paymentMethod!: typeof PaymentMethod.CARD;
+
+  @ApiProperty({ type: OrderDeliveryAddressBodyModel })
+  deliveryAddress!: OrderDeliveryAddressBodyModel;
+
+  @ApiProperty({
+    type: OrderBillingAddressBodyModel,
+    description: 'Required for CARD payment',
+  })
+  billing!: OrderBillingAddressBodyModel;
+}
+
+// PICKUP + CASH_ON_PICKUP (no deliveryAddress)
+export class PickupOrderCashModel extends NowTimingModel {
+  @ApiProperty({ enum: [OrderType.PICKUP] })
+  type!: typeof OrderType.PICKUP;
+
+  @ApiProperty({ enum: [PaymentMethod.CASH_ON_PICKUP] })
+  paymentMethod!: typeof PaymentMethod.CASH_ON_PICKUP;
+}
+
+// PICKUP + CARD (no deliveryAddress, billing required)
+export class PickupOrderCardModel extends NowTimingModel {
+  @ApiProperty({ enum: [OrderType.PICKUP] })
+  type!: typeof OrderType.PICKUP;
+
+  @ApiProperty({ enum: [PaymentMethod.CARD] })
+  paymentMethod!: typeof PaymentMethod.CARD;
+
+  @ApiProperty({
+    type: OrderBillingAddressBodyModel,
+    description: 'Required for CARD payment',
+  })
+  billing!: OrderBillingAddressBodyModel;
+}
+
+// Scheduled variants (scheduledAt required)
+export class DeliveryOrderCashScheduledModel extends ScheduledTimingModel {
+  @ApiProperty({ enum: [OrderType.DELIVERY] })
+  type!: typeof OrderType.DELIVERY;
+
+  @ApiProperty({ enum: [PaymentMethod.CASH_ON_DELIVERY] })
+  paymentMethod!: typeof PaymentMethod.CASH_ON_DELIVERY;
+
+  @ApiProperty({ type: OrderDeliveryAddressBodyModel })
+  deliveryAddress!: OrderDeliveryAddressBodyModel;
+
+  @ApiPropertyOptional({ type: OrderBillingAddressBodyModel, nullable: true })
+  billing?: OrderBillingAddressBodyModel | null;
+}
+
+export class DeliveryOrderCardScheduledModel extends ScheduledTimingModel {
+  @ApiProperty({ enum: [OrderType.DELIVERY] })
+  type!: typeof OrderType.DELIVERY;
+
+  @ApiProperty({ enum: [PaymentMethod.CARD] })
+  paymentMethod!: typeof PaymentMethod.CARD;
+
+  @ApiProperty({ type: OrderDeliveryAddressBodyModel })
+  deliveryAddress!: OrderDeliveryAddressBodyModel;
+
+  @ApiProperty({ type: OrderBillingAddressBodyModel })
+  billing!: OrderBillingAddressBodyModel;
+}
+
+// ─── Aggregate (for ApiExtraModels registration only) ─────────────────────────
+// Not used as ApiBody type — the decorator uses schema.oneOf directly.
+
+export class CreateOrderRequestModel {}
