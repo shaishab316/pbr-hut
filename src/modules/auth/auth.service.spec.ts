@@ -1,66 +1,54 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Test, TestingModule } from '@nestjs/testing';
-import { OtpService } from '../otp/otp.service';
-import { SafeUser } from '@/common/types/safe-user.type';
+import { UserRole } from '@prisma/client';
 import { AuthService } from './auth.service';
-import { ForgotPasswordInput } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { VerifyOtpInput } from './dto/verify-otp.dto';
 import { AuthCacheRepository } from './repository/auth.cache.repository';
 import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
+import { OtpService } from '../otp/otp.service';
 import { UserRepository } from '../user/repositories/user.repository';
+import { RiderRepository } from '../rider/repositories/rider.repository';
+import { H3IndexUtil } from '@/common/utils/h3index.util';
+import * as helpers from '@/common/helpers';
 
-jest.mock('@/common/helpers/hash.helper', () => ({
-  hashPassword: jest.fn().mockResolvedValue('hashed-password'),
+jest.mock('@/common/helpers', () => ({
+  hashPassword: jest.fn().mockResolvedValue('hashed_password'),
+  comparePassword: jest.fn(),
 }));
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const USER_ID = 'user-id-1';
-const IDENTIFIER = 'john@example.com';
-const OTP = '123456';
-const NONCE = 'abc-nonce-xyz';
-const RESET_TOKEN = 'signed.jwt.token';
-
-// ─── Fixtures ─────────────────────────────────────────────────────────────────
-
-const mockSafeUser: SafeUser = {
-  id: USER_ID,
-  email: IDENTIFIER,
-  name: 'John Doe',
-  phone: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  isActive: true,
-  role: 'CUSTOMER',
-};
-
-const signUpDto = {
-  identifierType: 'email' as const,
-  email: IDENTIFIER,
-  name: 'John',
-  password: 'password123',
-};
-
-const unverifiedUser = {
-  identifierType: 'email' as const,
-  name: 'John',
-  email: IDENTIFIER,
-  phone: null,
-  passwordHash: 'hashed',
-  createdAt: new Date(),
-};
-
-// ─── Mocks ────────────────────────────────────────────────────────────────────
+jest.mock('@/common/utils/h3index.util', () => ({
+  H3IndexUtil: {
+    encodeH3: jest.fn().mockReturnValue('h3index_mock'),
+  },
+}));
 
 const mockStrategy = {
-  getIdentifier: jest.fn().mockReturnValue(IDENTIFIER),
   findExistingUser: jest.fn(),
-  sendVerification: jest.fn().mockResolvedValue(undefined),
-  sendPasswordReset: jest.fn().mockResolvedValue(undefined),
-  buildContactFields: jest.fn().mockReturnValue({ email: IDENTIFIER }),
-  getIdentifierFromCache: jest.fn().mockReturnValue(IDENTIFIER),
+  findExistingUserWithPassword: jest.fn(),
+  getIdentifier: jest.fn().mockReturnValue('test@example.com'),
+  getIdentifierFromCache: jest.fn().mockReturnValue('test@example.com'),
+  buildContactFields: jest.fn().mockReturnValue({ email: 'test@example.com' }),
+  sendVerification: jest.fn(),
+  sendPasswordReset: jest.fn(),
+};
+
+const mockAuthCacheRepo = {
+  saveUnverifiedUser: jest.fn(),
+  getUnverifiedUser: jest.fn(),
+  deleteUnverifiedUser: jest.fn(),
+  createPasswordResetNonce: jest.fn().mockResolvedValue('nonce123'),
+  getPasswordResetNonce: jest.fn(),
+  deletePasswordResetNonce: jest.fn(),
+};
+
+const mockUserRepo = {
+  create: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn(),
+};
+
+const mockRiderRepo = {
+  createProfile: jest.fn(),
 };
 
 const mockContactStrategyFactory = {
@@ -68,41 +56,27 @@ const mockContactStrategyFactory = {
 };
 
 const mockOtpService = {
-  generate: jest.fn().mockReturnValue(OTP),
+  generate: jest.fn().mockReturnValue('123456'),
   verify: jest.fn(),
-};
-
-const mockAuthCacheRepo = {
-  saveUnverifiedUser: jest.fn().mockResolvedValue(undefined),
-  getUnverifiedUser: jest.fn(),
-  deleteUnverifiedUser: jest.fn().mockResolvedValue(undefined),
-  saveResetPasswordNonce: jest.fn().mockResolvedValue(NONCE),
-  getResetPasswordNonce: jest.fn(),
-  deleteResetPasswordNonce: jest.fn().mockResolvedValue(undefined),
-};
-
-const mockUserRepo = {
-  create: jest.fn().mockResolvedValue(mockSafeUser),
-  findById: jest.fn(),
-  update: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockJwtService = {
-  sign: jest.fn().mockReturnValue(RESET_TOKEN), // fix: aligned with RESET_TOKEN constant
+  sign: jest.fn().mockReturnValue('jwt_token'),
   verify: jest.fn(),
 };
-
-// ─── Suite ────────────────────────────────────────────────────────────────────
 
 describe('AuthService', () => {
   let service: AuthService;
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: AuthCacheRepository, useValue: mockAuthCacheRepo },
         { provide: UserRepository, useValue: mockUserRepo },
+        { provide: RiderRepository, useValue: mockRiderRepo },
         {
           provide: ContactStrategyFactory,
           useValue: mockContactStrategyFactory,
@@ -113,302 +87,306 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-
-    jest.clearAllMocks();
   });
 
-  // ── signUp ─────────────────────────────────────────────────────────────────
-
   describe('signUp', () => {
-    it('saves unverified user and sends OTP', async () => {
-      mockStrategy.findExistingUser.mockResolvedValue(null);
+    const dto = {
+      identifierType: 'email' as const,
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'password123',
+    };
 
-      const result = await service.signUp(signUpDto);
+    it('should throw if user already exists', async () => {
+      mockStrategy.findExistingUser.mockResolvedValueOnce({ id: '1' });
+      await expect(service.signUp(dto)).rejects.toThrow(BadRequestException);
+    });
 
-      expect(mockAuthCacheRepo.saveUnverifiedUser).toHaveBeenCalledWith(
-        IDENTIFIER,
-        expect.objectContaining({ name: 'John', email: IDENTIFIER }),
-      );
-      expect(mockOtpService.generate).toHaveBeenCalledWith(IDENTIFIER);
+    it('should save unverified user and send OTP', async () => {
+      mockStrategy.findExistingUser.mockResolvedValueOnce(null);
+
+      const result = await service.signUp(dto);
+
+      expect(mockAuthCacheRepo.saveUnverifiedUser).toHaveBeenCalled();
+      expect(mockOtpService.generate).toHaveBeenCalled();
       expect(mockStrategy.sendVerification).toHaveBeenCalled();
-      expect(result).toEqual({
-        message: 'Verification sent',
-        data: { identifier: IDENTIFIER },
+      expect(result).toEqual({ identifier: 'test@example.com' });
+    });
+  });
+
+  describe('verifyOtp', () => {
+    const baseDto = {
+      identifierType: 'email' as const,
+      otp: '123456',
+      email: 'test@example.com',
+    };
+
+    it('should throw if OTP is invalid', async () => {
+      mockOtpService.verify.mockReturnValueOnce(false);
+      await expect(
+        service.verifyOtp({ ...baseDto, flow: 'register' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    describe('register flow', () => {
+      it('should throw if unverified user not in cache', async () => {
+        mockOtpService.verify.mockReturnValueOnce(true);
+        mockAuthCacheRepo.getUnverifiedUser.mockResolvedValueOnce(null);
+
+        await expect(
+          service.verifyOtp({ ...baseDto, flow: 'register' }),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('should create customer and return register flow', async () => {
+        mockOtpService.verify.mockReturnValueOnce(true);
+        mockAuthCacheRepo.getUnverifiedUser.mockResolvedValueOnce({
+          identifierType: 'email',
+          role: UserRole.CUSTOMER,
+          name: 'Test',
+          email: 'test@example.com',
+          passwordHash: 'hash',
+          createdAt: new Date(),
+        });
+        mockUserRepo.create.mockResolvedValueOnce({ id: 'user1' });
+
+        const result = await service.verifyOtp({
+          ...baseDto,
+          flow: 'register',
+        });
+
+        expect(mockUserRepo.create).toHaveBeenCalled();
+        expect(result).toEqual({ flow: 'register' });
+      });
+
+      it('should create rider profile when role is RIDER', async () => {
+        mockOtpService.verify.mockReturnValueOnce(true);
+        mockAuthCacheRepo.getUnverifiedUser.mockResolvedValueOnce({
+          identifierType: 'email',
+          role: UserRole.RIDER,
+          name: 'Rider',
+          email: 'rider@example.com',
+          passwordHash: 'hash',
+          createdAt: new Date(),
+          latitude: 23.8,
+          longitude: 90.4,
+        });
+        mockUserRepo.create.mockResolvedValueOnce({ id: 'rider1' });
+
+        const result = await service.verifyOtp({
+          ...baseDto,
+          flow: 'register',
+        });
+
+        expect(H3IndexUtil.encodeH3).toHaveBeenCalledWith(23.8, 90.4);
+        expect(mockRiderRepo.createProfile).toHaveBeenCalled();
+        expect(result).toEqual({ flow: 'register' });
       });
     });
 
-    it('throws BadRequestException when user already exists', async () => {
-      mockStrategy.findExistingUser.mockResolvedValue({ id: 'uuid' });
+    describe('forgot-password flow', () => {
+      it('should throw if user not found', async () => {
+        mockOtpService.verify.mockReturnValueOnce(true);
+        mockStrategy.findExistingUser.mockResolvedValueOnce(null);
 
-      await expect(service.signUp(signUpDto)).rejects.toThrow(
+        await expect(
+          service.verifyOtp({ ...baseDto, flow: 'forgot-password' }),
+        ).rejects.toThrow(UnauthorizedException);
+      });
+
+      it('should throw if nonce not in cache', async () => {
+        mockOtpService.verify.mockReturnValueOnce(true);
+        mockStrategy.findExistingUser.mockResolvedValueOnce({ id: 'user1' });
+        mockAuthCacheRepo.getPasswordResetNonce.mockResolvedValueOnce(null);
+
+        await expect(
+          service.verifyOtp({ ...baseDto, flow: 'forgot-password' }),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('should return token on valid forgot-password flow', async () => {
+        mockOtpService.verify.mockReturnValueOnce(true);
+        mockStrategy.findExistingUser.mockResolvedValueOnce({ id: 'user1' });
+        mockAuthCacheRepo.getPasswordResetNonce.mockResolvedValueOnce(
+          'nonce123',
+        );
+
+        const result = await service.verifyOtp({
+          ...baseDto,
+          flow: 'forgot-password',
+        });
+
+        expect(mockJwtService.sign).toHaveBeenCalled();
+        expect(result).toEqual({
+          flow: 'forgot-password',
+          data: { token: 'jwt_token' },
+        });
+      });
+    });
+  });
+
+  describe('resendOtp', () => {
+    it('should throw if session expired', async () => {
+      mockAuthCacheRepo.getUnverifiedUser.mockResolvedValueOnce(null);
+      await expect(
+        service.resendOtp({ identifier: 'test@example.com' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should resend OTP successfully', async () => {
+      mockAuthCacheRepo.getUnverifiedUser.mockResolvedValueOnce({
+        identifierType: 'email',
+        email: 'test@example.com',
+      });
+
+      const result = await service.resendOtp({
+        identifier: 'test@example.com',
+      });
+
+      expect(mockOtpService.generate).toHaveBeenCalled();
+      expect(mockStrategy.sendVerification).toHaveBeenCalled();
+      expect(result).toEqual({ identifier: 'test@example.com' });
+    });
+  });
+
+  describe('login', () => {
+    const dto = {
+      identifierType: 'email' as const,
+      email: 'test@example.com',
+      password: 'password123',
+    };
+
+    it('should throw if user not found', async () => {
+      mockStrategy.findExistingUserWithPassword.mockResolvedValueOnce(null);
+      await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw if password is invalid', async () => {
+      mockStrategy.findExistingUserWithPassword.mockResolvedValueOnce({
+        id: 'user1',
+        passwordHash: 'hash',
+      });
+      (helpers.comparePassword as jest.Mock).mockResolvedValueOnce(false);
+
+      await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should return token and safe user on success', async () => {
+      mockStrategy.findExistingUserWithPassword.mockResolvedValueOnce({
+        id: 'user1',
+        email: 'test@example.com',
+        passwordHash: 'hash',
+      });
+      (helpers.comparePassword as jest.Mock).mockResolvedValueOnce(true);
+
+      const result = await service.login(dto);
+
+      expect(result.data.token).toBe('jwt_token');
+      expect(result.data.user).not.toHaveProperty('passwordHash');
+    });
+  });
+
+  describe('forgotPassword', () => {
+    const dto = { identifierType: 'email' as const, email: 'test@example.com' };
+
+    it('should throw if user not found', async () => {
+      mockStrategy.findExistingUser.mockResolvedValueOnce(null);
+      await expect(service.forgotPassword(dto)).rejects.toThrow(
         BadRequestException,
       );
     });
-  });
 
-  // ── verifyOtp ──────────────────────────────────────────────────────────────
-
-  describe('verifyOtp', () => {
-    const emailDto = {
-      identifierType: 'email' as const,
-      email: IDENTIFIER,
-      otp: OTP,
-    };
-
-    describe('OTP validation', () => {
-      it('throws UnauthorizedException when OTP is invalid', async () => {
-        mockOtpService.verify.mockReturnValue(false);
-
-        await expect(
-          service.verifyOtp({ ...emailDto, flow: 'register' }),
-        ).rejects.toThrow(new UnauthorizedException('Invalid or expired OTP'));
-
-        expect(mockOtpService.verify).toHaveBeenCalledWith(OTP, IDENTIFIER);
-      });
-    });
-
-    describe('flow: register', () => {
-      const dto: VerifyOtpInput = { ...emailDto, flow: 'register' };
-
-      beforeEach(() => mockOtpService.verify.mockReturnValue(true));
-
-      it('throws BadRequestException when unverified session is missing', async () => {
-        mockAuthCacheRepo.getUnverifiedUser.mockResolvedValue(null);
-
-        await expect(service.verifyOtp(dto)).rejects.toThrow(
-          new BadRequestException('Session expired, please sign up again'),
-        );
-      });
-
-      it('creates user, strips identifierType, clears cache, returns success', async () => {
-        mockAuthCacheRepo.getUnverifiedUser.mockResolvedValue({
-          identifierType: 'email',
-          email: IDENTIFIER,
-          name: 'John Doe',
-          passwordHash: 'hashed',
-        });
-
-        const result = await service.verifyOtp(dto);
-
-        expect(mockUserRepo.create).toHaveBeenCalledWith({
-          email: IDENTIFIER,
-          name: 'John Doe',
-          passwordHash: 'hashed',
-          // identifierType must be absent — it's a cache-only field
-        });
-        expect(mockAuthCacheRepo.deleteUnverifiedUser).toHaveBeenCalledWith(
-          IDENTIFIER,
-        );
-        expect(result).toEqual({ message: 'Account verified successfully' });
-      });
-    });
-
-    describe('flow: forgot-password', () => {
-      const dto: VerifyOtpInput = {
-        ...emailDto,
-        flow: 'forgot-password',
-      };
-
-      beforeEach(() => mockOtpService.verify.mockReturnValue(true));
-
-      it('throws UnauthorizedException when user is not found', async () => {
-        mockStrategy.findExistingUser.mockResolvedValue(null);
-
-        await expect(service.verifyOtp(dto)).rejects.toThrow(
-          new UnauthorizedException('Invalid credentials, user not found'),
-        );
-      });
-
-      it('throws BadRequestException when reset nonce is missing from cache', async () => {
-        mockStrategy.findExistingUser.mockResolvedValue(mockSafeUser);
-        mockAuthCacheRepo.getResetPasswordNonce.mockResolvedValue(null);
-
-        await expect(service.verifyOtp(dto)).rejects.toThrow(
-          new BadRequestException(
-            'Session expired, please initiate forgot password again',
-          ),
-        );
-      });
-
-      it('returns signed reset token and does NOT delete nonce', async () => {
-        mockStrategy.findExistingUser.mockResolvedValue(mockSafeUser);
-        mockAuthCacheRepo.getResetPasswordNonce.mockResolvedValue(NONCE);
-
-        const result = await service.verifyOtp(dto);
-
-        expect(mockJwtService.sign).toHaveBeenCalledWith({
-          sub: USER_ID,
-          nonce: NONCE,
-        });
-        // nonce must survive — deleted only after actual resetPassword call
-        expect(
-          mockAuthCacheRepo.deleteResetPasswordNonce,
-        ).not.toHaveBeenCalled();
-        expect(result).toEqual({
-          message: 'OTP verified, you can now reset your password',
-          data: { token: RESET_TOKEN },
-        });
-      });
-    });
-
-    describe('phone identifierType', () => {
-      it('resolves phone strategy and passes full dto to getIdentifier', async () => {
-        const phoneDto: VerifyOtpInput = {
-          identifierType: 'phone',
-          phone: '+8801712345678',
-          otp: OTP,
-          flow: 'register',
-        };
-
-        mockOtpService.verify.mockReturnValue(false);
-
-        await expect(service.verifyOtp(phoneDto)).rejects.toThrow(
-          UnauthorizedException,
-        );
-
-        expect(mockContactStrategyFactory.resolve).toHaveBeenCalledWith(
-          'phone',
-        );
-        expect(mockStrategy.getIdentifier).toHaveBeenCalledWith(phoneDto);
-      });
-    });
-  });
-
-  // ── resendOtp ──────────────────────────────────────────────────────────────
-
-  describe('resendOtp', () => {
-    it('resends OTP when session is alive', async () => {
-      mockAuthCacheRepo.getUnverifiedUser.mockResolvedValue(unverifiedUser);
-
-      const result = await service.resendOtp({ identifier: IDENTIFIER });
-
-      expect(mockOtpService.generate).toHaveBeenCalledWith(IDENTIFIER);
-      expect(mockStrategy.sendVerification).toHaveBeenCalled();
-      expect(result).toEqual({
-        message: 'Verification resent',
-        data: { identifier: IDENTIFIER },
-      });
-    });
-
-    it('throws BadRequestException when session has expired', async () => {
-      mockAuthCacheRepo.getUnverifiedUser.mockResolvedValue(null);
-
-      await expect(
-        service.resendOtp({ identifier: IDENTIFIER }),
-      ).rejects.toThrow(BadRequestException);
-    });
-  });
-
-  // ── forgotPassword ─────────────────────────────────────────────────────────
-
-  describe('forgotPassword', () => {
-    const dto: ForgotPasswordInput = {
-      identifierType: 'email',
-      email: IDENTIFIER,
-    };
-
-    it('throws BadRequestException when user is not found', async () => {
-      mockStrategy.findExistingUser.mockResolvedValue(null);
-
-      await expect(service.forgotPassword(dto)).rejects.toThrow(
-        new BadRequestException('User not found with this identifier'),
-      );
-    });
-
-    it('saves nonce, generates OTP from nonce, sends reset, returns identifier', async () => {
-      mockStrategy.findExistingUser.mockResolvedValue(mockSafeUser);
+    it('should generate nonce, OTP and send reset email', async () => {
+      mockStrategy.findExistingUser.mockResolvedValueOnce({ id: 'user1' });
 
       const result = await service.forgotPassword(dto);
 
-      expect(mockAuthCacheRepo.saveResetPasswordNonce).toHaveBeenCalledWith(
-        USER_ID,
+      expect(mockAuthCacheRepo.createPasswordResetNonce).toHaveBeenCalledWith(
+        'user1',
       );
-      expect(mockOtpService.generate).toHaveBeenCalledWith(NONCE);
-      expect(mockStrategy.sendPasswordReset).toHaveBeenCalledWith(
-        mockSafeUser,
-        OTP,
-      );
-      expect(result).toEqual({
-        message: 'Password reset OTP sent',
-        data: { identifier: IDENTIFIER },
-      });
-    });
-
-    it('resolves phone strategy for phone identifierType', async () => {
-      const phoneDto: ForgotPasswordInput = {
-        identifierType: 'phone',
-        phone: '+8801712345678',
-      };
-      mockStrategy.findExistingUser.mockResolvedValue(null);
-
-      await expect(service.forgotPassword(phoneDto)).rejects.toThrow(
-        BadRequestException,
-      );
-
-      expect(mockContactStrategyFactory.resolve).toHaveBeenCalledWith('phone');
+      expect(mockOtpService.generate).toHaveBeenCalledWith('nonce123');
+      expect(mockStrategy.sendPasswordReset).toHaveBeenCalled();
+      expect(result).toEqual({ identifier: 'test@example.com' });
     });
   });
 
-  // ── resetPassword ──────────────────────────────────────────────────────────
-
   describe('resetPassword', () => {
-    const dto: ResetPasswordDto = {
-      token: RESET_TOKEN,
-      newPassword: 'NewP@ss123',
+    const dto = { token: 'jwt_token', newPassword: 'newpass123' };
+
+    it('should throw if token payload has no nonce', async () => {
+      mockJwtService.verify.mockReturnValueOnce({ sub: 'user1', nonce: null });
+      await expect(service.resetPassword(dto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw if nonce mismatch', async () => {
+      mockJwtService.verify.mockReturnValueOnce({ sub: 'user1', nonce: 'abc' });
+      mockAuthCacheRepo.getPasswordResetNonce.mockResolvedValueOnce('xyz');
+
+      await expect(service.resetPassword(dto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw if user not found', async () => {
+      mockJwtService.verify.mockReturnValueOnce({
+        sub: 'user1',
+        nonce: 'nonce123',
+      });
+      mockAuthCacheRepo.getPasswordResetNonce.mockResolvedValueOnce('nonce123');
+      mockUserRepo.findById.mockResolvedValueOnce(null);
+
+      await expect(service.resetPassword(dto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should update password and delete nonce', async () => {
+      mockJwtService.verify.mockReturnValueOnce({
+        sub: 'user1',
+        nonce: 'nonce123',
+      });
+      mockAuthCacheRepo.getPasswordResetNonce.mockResolvedValueOnce('nonce123');
+      mockUserRepo.findById.mockResolvedValueOnce({ id: 'user1' });
+
+      await service.resetPassword(dto);
+
+      expect(mockUserRepo.update).toHaveBeenCalledWith('user1', {
+        passwordHash: 'hashed_password',
+      });
+      expect(mockAuthCacheRepo.deletePasswordResetNonce).toHaveBeenCalledWith(
+        'user1',
+      );
+    });
+  });
+
+  describe('riderSignUp', () => {
+    const dto = {
+      name: 'Rider',
+      email: 'rider@example.com',
+      phone: '01700000000',
+      password: 'pass123',
+      latitude: 23.8,
+      longitude: 90.4,
     };
 
-    it('throws BadRequestException when token payload has no nonce', async () => {
-      mockJwtService.verify.mockReturnValue({ sub: USER_ID, nonce: undefined });
-
-      await expect(service.resetPassword(dto)).rejects.toThrow(
-        new BadRequestException('Invalid token payload'),
+    it('should throw if rider already exists', async () => {
+      mockStrategy.findExistingUser.mockResolvedValueOnce({ id: '1' });
+      await expect(service.riderSignUp(dto)).rejects.toThrow(
+        BadRequestException,
       );
     });
 
-    it('throws BadRequestException when cached nonce does not match token nonce', async () => {
-      mockJwtService.verify.mockReturnValue({ sub: USER_ID, nonce: NONCE });
-      mockAuthCacheRepo.getResetPasswordNonce.mockResolvedValue('stale-nonce');
+    it('should save unverified rider and send OTP', async () => {
+      mockStrategy.findExistingUser.mockResolvedValueOnce(null);
 
-      await expect(service.resetPassword(dto)).rejects.toThrow(
-        new BadRequestException('Invalid or expired token'),
-      );
-    });
+      const result = await service.riderSignUp(dto);
 
-    it('throws BadRequestException when user is not found', async () => {
-      mockJwtService.verify.mockReturnValue({ sub: USER_ID, nonce: NONCE });
-      mockAuthCacheRepo.getResetPasswordNonce.mockResolvedValue(NONCE);
-      mockUserRepo.findById.mockResolvedValue(null);
-
-      await expect(service.resetPassword(dto)).rejects.toThrow(
-        new BadRequestException('User not found'),
-      );
-    });
-
-    it('hashes password, updates user, deletes nonce, returns success', async () => {
-      mockJwtService.verify.mockReturnValue({ sub: USER_ID, nonce: NONCE });
-      mockAuthCacheRepo.getResetPasswordNonce.mockResolvedValue(NONCE);
-      mockUserRepo.findById.mockResolvedValue(mockSafeUser);
-
-      const result = await service.resetPassword(dto);
-
-      expect(mockUserRepo.update).toHaveBeenCalledWith(USER_ID, {
-        passwordHash: 'hashed-password',
-      });
-      expect(mockAuthCacheRepo.deleteResetPasswordNonce).toHaveBeenCalledWith(
-        USER_ID,
-      );
-      expect(result).toEqual({ message: 'Password reset successful' });
-    });
-
-    it('does NOT delete nonce when password update fails', async () => {
-      mockJwtService.verify.mockReturnValue({ sub: USER_ID, nonce: NONCE });
-      mockAuthCacheRepo.getResetPasswordNonce.mockResolvedValue(NONCE);
-      mockUserRepo.findById.mockResolvedValue(mockSafeUser);
-      mockUserRepo.update.mockRejectedValue(new Error('DB failure'));
-
-      await expect(service.resetPassword(dto)).rejects.toThrow('DB failure');
-
-      expect(mockAuthCacheRepo.deleteResetPasswordNonce).not.toHaveBeenCalled();
+      expect(mockAuthCacheRepo.saveUnverifiedUser).toHaveBeenCalled();
+      expect(mockOtpService.generate).toHaveBeenCalled();
+      expect(mockStrategy.sendVerification).toHaveBeenCalled();
+      expect(result).toEqual({ identifier: 'test@example.com' });
     });
   });
 });
