@@ -39,6 +39,8 @@ const VerifyOtpSchema = z
 
 export type VerifyOtpInput = z.infer<typeof VerifyOtpSchema>;
 
+export type VerifyOtpFlow = VerifyOtpInput['flow'];
+
 export class VerifyOtpDto extends createZodDto(
   VerifyOtpSchema as unknown as z.ZodType<object>,
 ) {}

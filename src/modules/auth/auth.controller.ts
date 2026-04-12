@@ -1,7 +1,11 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto, SignUpInput } from './dto/sign-up.dto';
-import { VerifyOtpDto, VerifyOtpInput } from './dto/verify-otp.dto';
+import {
+  VerifyOtpDto,
+  VerifyOtpFlow,
+  VerifyOtpInput,
+} from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginDto } from './dto/login.dto';
 import {
@@ -28,50 +32,75 @@ export class AuthController {
   @Post('register-customer')
   @HttpCode(200)
   async signUp(@Body() dto: SignUpDto) {
-    return this.authService.signUp(dto as unknown as SignUpInput);
+    const data = await this.authService.signUp(dto as unknown as SignUpInput);
+
+    return { message: 'Otp sent successfully, please verify', data };
   }
 
   @ApiRiderSignUp()
   @Post('register-rider')
   @HttpCode(200)
   async riderSignUp(@Body() dto: RiderSignUpDto) {
-    return this.authService.riderSignUp(dto);
+    const data = await this.authService.riderSignUp(dto);
+
+    return { message: 'Otp sent successfully, please verify', data };
   }
 
   @ApiVerifyOtp()
   @HttpCode(200)
   @Post('verify-otp')
   async verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.authService.verifyOtp(dto as unknown as VerifyOtpInput);
+    const { data, flow } = await this.authService.verifyOtp(
+      dto as unknown as VerifyOtpInput,
+    );
+
+    const messageMap: Record<VerifyOtpFlow, string> = {
+      register: 'Account verified successfully',
+      'forgot-password':
+        'Otp verified successfully, you can now reset your password',
+    };
+
+    return {
+      message: messageMap[flow],
+      data,
+    };
   }
 
   @ApiResendOtp()
   @Post('resend-otp')
   @HttpCode(200)
   async resendOtp(@Body() dto: ResendOtpDto) {
-    return this.authService.resendOtp(dto);
+    const data = await this.authService.resendOtp(dto);
+
+    return { message: 'Otp sent successfully', data };
   }
 
   @ApiLogin()
   @Post('login')
   @HttpCode(200)
   async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto as unknown as SignUpInput);
+    const data = await this.authService.login(dto as unknown as SignUpInput);
+
+    return { message: 'Login successfully', data };
   }
 
   @ApiForgotPassword()
   @Post('forgot-password')
   @HttpCode(200)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(
+    const data = await this.authService.forgotPassword(
       dto as unknown as ForgotPasswordInput,
     );
+
+    return { message: 'Password reset OTP sent', data };
   }
 
   @ApiResetPassword()
   @Post('reset-password')
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto);
+    await this.authService.resetPassword(dto);
+
+    return { message: 'Password reset successfully' };
   }
 }

@@ -12,7 +12,7 @@ import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
 import { comparePassword, hashPassword } from '@/common/helpers';
 import type { SignUpInput } from './dto/sign-up.dto';
 import { OtpService } from '../otp/otp.service';
-import { VerifyOtpInput } from './dto/verify-otp.dto';
+import { VerifyOtpFlow, VerifyOtpInput } from './dto/verify-otp.dto';
 import { UserRepository } from '../user/repositories/user.repository';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginInput } from './dto/login.dto';
@@ -72,10 +72,12 @@ export class AuthService {
 
     await this.sendOtp(unverifiedUser);
 
-    return { message: 'Verification sent', data: { identifier } };
+    return { identifier };
   }
 
-  async verifyOtp(dto: VerifyOtpInput) {
+  async verifyOtp(
+    dto: VerifyOtpInput,
+  ): Promise<{ flow: VerifyOtpFlow; data?: any }> {
     const strategy = this.contactStrategyFactory.resolve(dto.identifierType);
 
     const identifier = strategy.getIdentifier(dto);
@@ -86,25 +88,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired OTP');
     }
 
-    switch (dto.flow) {
-      case 'register': {
-        return this.verifyOtpForRegistration(identifier);
-      }
-      case 'forgot-password': {
-        const user = await strategy.findExistingUser(dto);
-
-        if (!user) {
-          throw new UnauthorizedException(
-            'Invalid credentials, user not found',
-          );
-        }
-
-        return this.verifyOtpForPasswordReset(user);
-      }
-      default:
-        //? This should never happen because of the DTO validation, but we add this to satisfy TypeScript exhaustiveness check
-        throw new BadRequestException('Invalid verification reason');
+    //? route using flow
+    if (dto.flow === 'register') {
+      return this.verifyOtpForRegistration(identifier);
     }
+
+    const user = await strategy.findExistingUser(dto);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials, user not found');
+    }
+
+    return this.verifyOtpForPasswordReset(user);
   }
 
   private async verifyOtpForRegistration(identifier: string) {
@@ -145,7 +140,7 @@ export class AuthService {
       }
     }
 
-    return { message: 'Account verified successfully' };
+    return { flow: 'register' as const };
   }
 
   private async verifyOtpForPasswordReset(user: SafeUser) {
@@ -165,8 +160,10 @@ export class AuthService {
     } satisfies ResetPasswordTokenPayload);
 
     return {
-      message: 'OTP verified, you can now reset your password',
-      data: { token },
+      flow: 'forgot-password' as const,
+      data: {
+        token,
+      },
     };
   }
 
@@ -191,10 +188,7 @@ export class AuthService {
 
     await this.sendOtp(unverifiedUser);
 
-    return {
-      message: 'Verification resent',
-      data: { identifier: dto.identifier },
-    };
+    return { identifier: dto.identifier };
   }
 
   async login(loginDto: LoginInput) {
@@ -230,7 +224,6 @@ export class AuthService {
     const { passwordHash, ...safeUser } = user;
 
     return {
-      message: 'Login successful',
       data: {
         token,
         user: safeUser,
@@ -255,10 +248,7 @@ export class AuthService {
 
     await strategy.sendPasswordReset(user, otp);
 
-    return {
-      message: 'Password reset OTP sent',
-      data: { identifier },
-    };
+    return { identifier };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
@@ -289,8 +279,6 @@ export class AuthService {
     });
 
     await this.authCacheRepo.deletePasswordResetNonce(user.id);
-
-    return { message: 'Password reset successful' };
   }
 
   async riderSignUp(signUpDto: RiderSignUpDto) {
@@ -332,6 +320,6 @@ export class AuthService {
 
     await this.sendOtp(unverifiedUser);
 
-    return { message: 'Verification sent', data: { identifier } };
+    return { identifier };
   }
 }
