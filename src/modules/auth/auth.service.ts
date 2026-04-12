@@ -149,7 +149,7 @@ export class AuthService {
   }
 
   private async verifyOtpForPasswordReset(user: SafeUser) {
-    const nonce = await this.authCacheRepo.getResetPasswordNonce(user.id);
+    const nonce = await this.authCacheRepo.getPasswordResetNonce(user.id);
 
     if (!nonce) {
       throw new BadRequestException(
@@ -249,7 +249,7 @@ export class AuthService {
 
     const identifier = strategy.getIdentifier(dto);
 
-    const nonce = await this.authCacheRepo.saveResetPasswordNonce(user.id);
+    const nonce = await this.authCacheRepo.createPasswordResetNonce(user.id);
 
     const otp = this.otpService.generate(nonce);
 
@@ -270,7 +270,7 @@ export class AuthService {
       throw new BadRequestException('Invalid token payload');
     }
 
-    const nonceInCache = await this.authCacheRepo.getResetPasswordNonce(
+    const nonceInCache = await this.authCacheRepo.getPasswordResetNonce(
       payload.sub,
     );
 
@@ -288,7 +288,7 @@ export class AuthService {
       passwordHash: await hashPassword(dto.newPassword),
     });
 
-    await this.authCacheRepo.deleteResetPasswordNonce(user.id);
+    await this.authCacheRepo.deletePasswordResetNonce(user.id);
 
     return { message: 'Password reset successful' };
   }
