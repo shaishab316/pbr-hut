@@ -56,3 +56,7 @@ enum EarningStatus {
   SETTLED // earnings have been transferred to rider
   CANCELLED // order was cancelled or rejected, no earnings
 }
+
+enum TargetItem {
+  ITEM
+}

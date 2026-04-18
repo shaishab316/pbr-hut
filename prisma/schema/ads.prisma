@@ -1,0 +1,15 @@
+model BannerAds {
+  id String @id @default(ulid())
+
+  order    Int    @default(autoincrement())
+  title    String
+  mediaUrl String
+  color    String @default("#FFFFFF")
+
+  type TargetItem
+  data String
+
+  clickCount Int @default(0)
+
+  @@map("banner_ads")
+}
