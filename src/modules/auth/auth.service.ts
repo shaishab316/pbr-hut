@@ -82,15 +82,9 @@ export class AuthService {
 
     const identifier = strategy.getIdentifier(dto);
 
-    const isValid = this.otpService.verify(dto.otp, identifier);
-
-    if (!isValid) {
-      throw new UnauthorizedException('Invalid or expired OTP');
-    }
-
     //? route using flow
     if (dto.flow === 'register') {
-      return this.verifyOtpForRegistration(identifier);
+      return this.verifyOtpForRegistration(identifier, dto.otp);
     }
 
     const user = await strategy.findExistingUser(dto);
@@ -99,10 +93,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials, user not found');
     }
 
-    return this.verifyOtpForPasswordReset(user);
+    return this.verifyOtpForPasswordReset(user, dto.otp);
   }
 
-  private async verifyOtpForRegistration(identifier: string) {
+  private async verifyOtpForRegistration(identifier: string, otp: string) {
+    const isValid = this.otpService.verify(otp, identifier);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
     const unverifiedUser =
       await this.authCacheRepo.getUnverifiedUser(identifier);
 
@@ -143,13 +143,19 @@ export class AuthService {
     return { flow: 'register' as const };
   }
 
-  private async verifyOtpForPasswordReset(user: SafeUser) {
+  private async verifyOtpForPasswordReset(user: SafeUser, otp: string) {
     const nonce = await this.authCacheRepo.getPasswordResetNonce(user.id);
 
     if (!nonce) {
       throw new BadRequestException(
         'Session expired, please initiate forgot password again',
       );
+    }
+
+    const isValid = this.otpService.verify(otp, nonce);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid or expired OTP');
     }
 
     //! dont delete nonce from cache here, we will delete it after password reset to prevent multiple OTP verifications and ensure that the user resets the password immediately after verifying OTP
