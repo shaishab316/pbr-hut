@@ -95,6 +95,6 @@ export const createFileUploadInterceptor = (config: FileUploadConfig) =>
     {
       storage: memoryStorage(),
       limits: { fileSize: strictestSizeCap(config) },
-      fileFilter: createFileFilter(config),
+      fileFilter: createFileFilter(config) as any,
     },
   );

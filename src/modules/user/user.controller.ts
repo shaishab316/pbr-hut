@@ -8,12 +8,18 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  Patch,
 } from '@nestjs/common';
 import { ApiGetMe } from './docs/user.docs';
 import { UserService } from './user.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  UpdateProfileDto,
+  updateProfileSchema,
+} from './dto/update-profile.dto';
 import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
+import { safeJsonParse } from '@/common/utils/safeJsonParse';
+import { ZodValidationException } from 'nestjs-zod';
 
 const ProfilePictureUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -54,17 +60,27 @@ export class UserController {
     };
   }
 
-  @Post('update-profile')
+  @Patch('update-profile')
   @UseInterceptors(ProfilePictureUploadInterceptor)
   async updateProfile(
     @CurrentUser('id') userId: string,
     @UploadedFiles() files: { profilePicture?: Express.Multer.File[] },
-    @Body() dto: UpdateProfileDto,
+    @Body() body: any,
   ) {
+    const raw: UpdateProfileDto = body['data']
+      ? safeJsonParse(body['data'])
+      : body;
+
+    const dto = updateProfileSchema.safeParse(raw);
+
+    if (!dto.success) {
+      throw new ZodValidationException(dto.error);
+    }
+
     const profilePictureFile = files?.profilePicture?.[0];
     const user = await this.userService.updateProfile(
       userId,
-      dto,
+      dto.data,
       profilePictureFile,
     );
 
