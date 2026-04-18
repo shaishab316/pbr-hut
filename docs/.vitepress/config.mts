@@ -45,16 +45,23 @@ export default defineConfig({
         text: 'Auth',
         collapsed: false,
         items: [
-          { text: 'Auth module', link: '/auth/auth' },
+          {
+            text: 'Auth module',
+            link: '/auth/auth',
+            items: [
+              {
+                text: 'auth.cache.repository',
+                link: '/auth/repositories/auth.cache.repository',
+              },
+            ],
+          },
           { text: 'Forgot password', link: '/auth/forgot-password' },
           { text: 'OTP module', link: '/otp/otp' },
         ],
       },
     ],
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/shaishab316' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/shaishab316' }],
 
     search: {
       provider: 'local',
