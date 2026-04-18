@@ -5,12 +5,14 @@ import { RiderRepository } from '../rider/repositories/rider.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { comparePassword, hashPassword } from '@/common/helpers';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CloudinaryService } from '../upload/cloudinary.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly riderRepository: RiderRepository,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   async getMe(userId: string) {
@@ -53,7 +55,25 @@ export class UserService {
     });
   }
 
-  async updateProfile(userId: string, dto: UpdateProfileDto) {
-    return this.userRepository.update(userId, dto);
+  async updateProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+    profilePictureFile?: Express.Multer.File,
+  ) {
+    const updateData: Parameters<typeof this.userRepository.update>[1] = {
+      ...dto,
+    };
+
+    if (profilePictureFile) {
+      const uploaded = await this.cloudinary.uploadFile({
+        file: profilePictureFile,
+        folder: 'profile-pictures',
+        resourceType: 'image',
+      });
+
+      updateData.profilePicture = uploaded.url;
+    }
+
+    return this.userRepository.update(userId, updateData);
   }
 }

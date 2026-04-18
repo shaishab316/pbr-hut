@@ -4,7 +4,8 @@ model User {
   phone        String? @unique
   passwordHash String?
 
-  name String?
+  name           String?
+  profilePicture String?
 
   role     UserRole @default(CUSTOMER)
   isActive Boolean  @default(true)
@@ -12,10 +13,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  riderProfile RiderProfile?
-  cart         Cart?
-  orders       Order[] @relation("CustomerOrders")
-  riderAssignments Order[] @relation("AssignedRider")
+  riderProfile     RiderProfile?
+  cart             Cart?
+  orders           Order[]       @relation("CustomerOrders")
+  riderAssignments Order[]       @relation("AssignedRider")
 
   @@index([email])
   @@index([phone])
