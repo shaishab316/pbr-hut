@@ -31,6 +31,7 @@ import { safeJsonParse } from '@/common/utils/safeJsonParse';
 import { JwtGuard, RolesGuard } from '@/common/guards';
 import { Roles } from '@/common/decorators';
 import { UserRole } from '@prisma/client';
+import { Pagination } from '@/common/types/pagination';
 
 const ItemUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -52,8 +53,59 @@ export class ItemController {
 
   @Get()
   @ApiGetItems()
-  findMany(@Query() query: QueryItemsDto) {
-    return this.itemService.findMany(query);
+  async findMany(@Query() query: QueryItemsDto) {
+    const { items, total } = await this.itemService.findMany(query);
+
+    return {
+      message: 'Items retrieved successfully',
+      data: items,
+      meta: {
+        pagination: {
+          total,
+          page: query.page,
+          limit: query.limit,
+          totalPages: Math.ceil(total / query.limit),
+        } satisfies Pagination,
+      },
+    };
+  }
+
+  @Get('popular')
+  @ApiGetItems()
+  async popularItems(@Query() query: QueryItemsDto) {
+    const { items, total } = await this.itemService.findMany(query);
+
+    return {
+      message: 'Popular items retrieved successfully',
+      data: items,
+      meta: {
+        pagination: {
+          total,
+          page: query.page,
+          limit: query.limit,
+          totalPages: Math.ceil(total / query.limit),
+        } satisfies Pagination,
+      },
+    };
+  }
+
+  @Get('you-may-like')
+  @ApiGetItems()
+  async youMayLike(@Query() query: QueryItemsDto) {
+    const { items, total } = await this.itemService.findMany(query);
+
+    return {
+      message: 'You may like items retrieved successfully',
+      data: items,
+      meta: {
+        pagination: {
+          total,
+          page: query.page,
+          limit: query.limit,
+          totalPages: Math.ceil(total / query.limit),
+        } satisfies Pagination,
+      },
+    };
   }
 
   @Get(':id')
