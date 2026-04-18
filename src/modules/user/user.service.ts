@@ -2,8 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepository } from './repositories/user.repository';
 import { UserRole } from '@prisma/client';
 import { RiderRepository } from '../rider/repositories/rider.repository';
-import { changePasswordDto } from './dto/change-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { comparePassword, hashPassword } from '@/common/helpers';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UserService {
@@ -30,7 +31,7 @@ export class UserService {
     return user;
   }
 
-  async changePassword(userId: string, dto: changePasswordDto) {
+  async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.userRepository.findByIdWithPassword(userId);
 
     if (!user) {
@@ -50,5 +51,9 @@ export class UserService {
     await this.userRepository.update(userId, {
       passwordHash: newHashedPassword,
     });
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    return this.userRepository.update(userId, dto);
   }
 }
