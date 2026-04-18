@@ -45,6 +45,10 @@ export class UserRepository {
     });
   }
 
+  async findByIdWithPassword(id: string) {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
   async findByPhone(phone: string): Promise<SafeUser | null> {
     return this.prisma.user.findUnique({
       where: { phone },
