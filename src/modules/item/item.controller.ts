@@ -56,6 +56,16 @@ export class ItemController {
     return this.itemService.findMany(query);
   }
 
+  @Get(':id')
+  async findById(@Param('id', ParseUUIDPipe) id: string) {
+    const item = await this.itemService.findById(id);
+
+    return {
+      message: 'Item retrieved successfully',
+      data: item,
+    };
+  }
+
   // ─── Admin ────────────────────────────────────────────────────────────────
 
   @Post()

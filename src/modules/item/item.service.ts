@@ -74,4 +74,8 @@ export class ItemService {
     await this.itemRepo.softDelete(id);
     return { message: 'Item deleted successfully' };
   }
+
+  async findById(id: string) {
+    return this.itemRepo.findById(id);
+  }
 }
