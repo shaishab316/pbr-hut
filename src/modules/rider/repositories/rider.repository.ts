@@ -141,4 +141,100 @@ export class RiderRepository {
       totalWalletAmount: riderProfile?.availableBalance || 0,
     };
   }
+
+  async getEarningOverview(riderId: string) {
+    // Get current week (Sunday to Saturday)
+    const today = new Date();
+    const currentDay = today.getDay();
+
+    // Calculate start of week (Sunday)
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - currentDay);
+    weekStart.setHours(0, 0, 0, 0);
+
+    // Calculate end of week (Saturday)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    // Get today's date
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    // Fetch all earnings for the week
+    const weekEarnings = await this.prisma.riderEarning.findMany({
+      where: {
+        riderId,
+        createdAt: {
+          gte: weekStart,
+          lt: weekEnd,
+        },
+        status: 'SETTLED',
+      },
+    });
+
+    // Fetch today's earnings
+    const todayEarnings = await this.prisma.riderEarning.findMany({
+      where: {
+        riderId,
+        createdAt: {
+          gte: todayStart,
+          lt: todayEnd,
+        },
+        status: 'SETTLED',
+      },
+    });
+
+    // Calculate totals
+    const totalEarningsThisWeek = weekEarnings.reduce((sum, earning) => {
+      return sum + Number(earning.total);
+    }, 0);
+
+    const todayEarning = todayEarnings.reduce((sum, earning) => {
+      return sum + Number(earning.total);
+    }, 0);
+
+    const deliveredCount = weekEarnings.length;
+    const averageIncome =
+      deliveredCount > 0 ? totalEarningsThisWeek / deliveredCount : 0;
+
+    // Build daily breakdown
+    const dailyMap = new Map<string, number>();
+    const daysOfWeek = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+
+    // Initialize all days with 0
+    for (let i = 0; i < 7; i++) {
+      dailyMap.set(daysOfWeek[i], 0);
+    }
+
+    // Accumulate earnings by day
+    weekEarnings.forEach((earning) => {
+      const dayOfWeek = earning.createdAt.getDay();
+      const dayName = daysOfWeek[dayOfWeek];
+      const currentAmount = dailyMap.get(dayName) || 0;
+      dailyMap.set(dayName, currentAmount + Number(earning.total));
+    });
+
+    const dailyBreakdown = daysOfWeek.map((day) => ({
+      day,
+      earnings: Math.round((dailyMap.get(day) || 0) * 100) / 100,
+    }));
+
+    return {
+      totalEarningsThisWeek: Math.round(totalEarningsThisWeek * 100) / 100,
+      todayEarning: Math.round(todayEarning * 100) / 100,
+      deliveredCount,
+      averageIncome: Math.round(averageIncome * 100) / 100,
+      dailyBreakdown,
+    };
+  }
 }

@@ -55,6 +55,14 @@ export class RiderController {
     return this.riderService.updateLocation(userId, dto);
   }
 
+  @Get('earning/overview')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.RIDER)
+  @HttpCode(HttpStatus.OK)
+  getEarningOverview(@CurrentUser('id') userId: string) {
+    return this.riderService.getEarningOverview(userId);
+  }
+
   @ApiUploadNid()
   @Post('nid')
   @UseInterceptors(NidUploadInterceptor)

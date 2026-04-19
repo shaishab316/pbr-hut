@@ -45,4 +45,8 @@ export class RiderService {
   async getHomeOverview(userId: string) {
     return this.riderRepository.getHomeOverview(userId);
   }
+
+  async getEarningOverview(userId: string) {
+    return this.riderRepository.getEarningOverview(userId);
+  }
 }
