@@ -24,6 +24,7 @@ import {
   ApiListOrderHistory,
   ApiReorder,
 } from './docs';
+import { Pagination } from '@/common/types/pagination';
 
 @ApiTags('Orders')
 @UseGuards(JwtGuard)
@@ -34,23 +35,51 @@ export class OrderController {
   @ApiCreateOrder()
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@CurrentUser('id') userId: string, @Body() dto: CreateOrderDto) {
-    return this.orderService.create(userId, dto as unknown as CreateOrderInput);
+  async placeOrder(
+    @CurrentUser('id') userId: string,
+    @Body() dto: CreateOrderDto,
+  ) {
+    const order = await this.orderService.placeOrder(
+      userId,
+      dto as unknown as CreateOrderInput,
+    );
+
+    return {
+      message: 'Order placed successfully',
+      data: order,
+    };
   }
 
   @ApiListActiveOrders()
   @Get('active')
-  listActive(@CurrentUser('id') userId: string) {
-    return this.orderService.listActive(userId);
+  async listActive(@CurrentUser('id') userId: string) {
+    const orders = await this.orderService.listActive(userId);
+    return { message: 'Active orders retrieved successfully', data: orders };
   }
 
   @ApiListOrderHistory()
   @Get('history')
-  listHistory(
+  async listHistory(
     @CurrentUser('id') userId: string,
     @Query() query: QueryOrderHistoryDto,
   ) {
-    return this.orderService.listHistory(userId, query);
+    const { orders, total } = await this.orderService.listHistory(
+      userId,
+      query,
+    );
+
+    return {
+      message: 'Order history retrieved successfully',
+      data: orders,
+      meta: {
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total,
+          totalPages: Math.ceil(total / query.limit),
+        } satisfies Pagination,
+      },
+    };
   }
 
   @ApiGetOrder()

@@ -14,7 +14,6 @@ import {
 } from '@prisma/client';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
-import { Pagination } from '@/common/types/pagination';
 import type { CartWithItems } from '@/modules/cart/repositories/cart.repository';
 import { CartRepository } from '@/modules/cart/repositories/cart.repository';
 import { CartService } from '@/modules/cart/cart.service';
@@ -67,7 +66,7 @@ export class OrderService {
     private readonly orderRepo: OrderRepository,
   ) {}
 
-  async create(userId: string, dto: CreateOrderInput) {
+  async placeOrder(userId: string, dto: CreateOrderInput) {
     const cart = await this.cartRepo.findCartWithItemsByUserId(userId);
     if (cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
@@ -222,15 +221,13 @@ export class OrderService {
       return created;
     });
 
-    return {
-      message: 'Order placed successfully',
-      data: order,
-    };
+    return order;
   }
 
   async listActive(userId: string) {
-    const data = await this.orderRepo.findActiveByUserId(userId);
-    return { message: 'Success', data };
+    const order = await this.orderRepo.findActiveByUserId(userId);
+
+    return order;
   }
 
   async listHistory(userId: string, query: QueryOrderHistoryInput) {
@@ -239,17 +236,10 @@ export class OrderService {
       query.page,
       query.limit,
     );
-    const totalPages = query.limit > 0 ? Math.ceil(total / query.limit) : 0;
 
     return {
-      message: 'Success',
-      data: orders,
-      pagination: {
-        total,
-        limit: query.limit,
-        page: query.page,
-        totalPages,
-      } satisfies Pagination,
+      orders,
+      total,
     };
   }
 
