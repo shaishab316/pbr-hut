@@ -126,4 +126,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     // Usually only used in E2E tests.
     await this.client.flushdb();
   }
+
+  getClient() {
+    return this.client;
+  }
 }

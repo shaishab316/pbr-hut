@@ -4,16 +4,30 @@ import type { UpdateItemDto } from './dto/update-item.dto';
 import type { QueryItemsDto } from './dto/query-items.dto';
 import { CloudinaryService } from '../upload/cloudinary.service';
 import { ItemRepository } from './repositories/item.repository';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class ItemService {
   constructor(
     private readonly itemRepo: ItemRepository,
     private readonly cloudinary: CloudinaryService,
+    private readonly redis: RedisService,
   ) {}
 
   async findMany(query: QueryItemsDto) {
+    if (query.search) {
+      await this.redis
+        .getClient()
+        .zincrby('search:popular', 1, query.search.trim().toLowerCase());
+    }
+
     return this.itemRepo.findMany(query);
+  }
+
+  async getHotSearchTerms() {
+    const top5 = await this.redis.getClient().zrevrange('search:popular', 0, 4);
+
+    return top5;
   }
 
   async create(dto: CreateItemDto, imageFile: Express.Multer.File) {

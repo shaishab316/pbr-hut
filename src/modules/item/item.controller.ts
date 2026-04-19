@@ -108,6 +108,16 @@ export class ItemController {
     };
   }
 
+  @Get('hot-search-terms')
+  async hotSearchTerms() {
+    const terms = await this.itemService.getHotSearchTerms();
+
+    return {
+      message: 'Hot search terms retrieved successfully',
+      data: terms,
+    };
+  }
+
   @Get(':id')
   async findById(@Param('id', ParseUUIDPipe) id: string) {
     const item = await this.itemService.findById(id);

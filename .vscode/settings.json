@@ -6,6 +6,8 @@
     "Millis",
     "ngeohash",
     "setex",
-    "wrongpassword"
+    "WITHSCORES",
+    "wrongpassword",
+    "zincrby"
   ]
 }
