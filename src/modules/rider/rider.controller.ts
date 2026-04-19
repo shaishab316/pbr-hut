@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Patch,
@@ -33,6 +34,14 @@ const NidUploadInterceptor = createFileUploadInterceptor({
 @Controller('rider')
 export class RiderController {
   constructor(private readonly riderService: RiderService) {}
+
+  @Get('home/overview')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.RIDER)
+  @HttpCode(HttpStatus.OK)
+  getHomeOverview(@CurrentUser('id') userId: string) {
+    return this.riderService.getHomeOverview(userId);
+  }
 
   @ApiUpdateRiderLocation()
   @UseGuards(RolesGuard)

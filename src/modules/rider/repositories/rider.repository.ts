@@ -110,4 +110,35 @@ export class RiderRepository {
       this.prisma.riderProfile.count({ where: whereClause }),
     ]);
   }
+
+  async getHomeOverview(riderId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [todayOrderCount, riderProfile] = await Promise.all([
+      this.prisma.order.count({
+        where: {
+          assignedRiderId: riderId,
+          createdAt: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+      }),
+      this.prisma.riderProfile.findUnique({
+        where: { userId: riderId },
+        select: {
+          availableBalance: true,
+        },
+      }),
+    ]);
+
+    return {
+      todayTotalOrderCount: todayOrderCount,
+      totalWalletAmount: riderProfile?.availableBalance || 0,
+    };
+  }
 }

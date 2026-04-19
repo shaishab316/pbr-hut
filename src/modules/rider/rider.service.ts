@@ -41,4 +41,8 @@ export class RiderService {
       nidStatus: 'PENDING',
     });
   }
+
+  async getHomeOverview(userId: string) {
+    return this.riderRepository.getHomeOverview(userId);
+  }
 }
