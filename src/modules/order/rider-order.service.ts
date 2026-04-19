@@ -319,6 +319,7 @@ export class RiderOrderService {
     const full = await this.prisma.order.findFirstOrThrow({
       where: { id: orderId },
       include: orderDetailInclude,
+      omit: { confirmationCode: true }, //! should be hidden from the rider
     });
 
     return {
