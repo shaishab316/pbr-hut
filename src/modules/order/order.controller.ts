@@ -16,6 +16,7 @@ import { JwtGuard } from '@/common/guards';
 import { OrderService } from './order.service';
 import { CreateOrderDto, CreateOrderInput } from './dto/create-order.dto';
 import { QueryOrderHistoryDto } from './dto/query-order-history.dto';
+import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import {
   ApiCancelOrder,
   ApiCreateOrder,
@@ -109,5 +110,41 @@ export class OrderController {
     @Param('orderId', ParseUUIDPipe) orderId: string,
   ) {
     return this.orderService.reorder(userId, orderId);
+  }
+
+  @Post(':orderId/mark-as-paid')
+  @HttpCode(HttpStatus.OK)
+  async markAsPaid(@Param('orderId', ParseUUIDPipe) orderId: string) {
+    const order = await this.orderService.markAsPaid(orderId);
+    return {
+      message: 'Order marked as paid successfully',
+      data: order,
+    };
+  }
+
+  @Post(':orderId/mark-as-unpaid')
+  @HttpCode(HttpStatus.OK)
+  async markAsUnpaid(@Param('orderId', ParseUUIDPipe) orderId: string) {
+    const order = await this.orderService.markAsUnpaid(orderId);
+    return {
+      message: 'Order marked as unpaid successfully',
+      data: order,
+    };
+  }
+
+  @Post(':orderId/update-payment-status')
+  @HttpCode(HttpStatus.OK)
+  async updatePaymentStatus(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Body() dto: UpdatePaymentStatusDto,
+  ) {
+    const order = await this.orderService.updatePaymentStatus(
+      orderId,
+      dto.paymentStatus,
+    );
+    return {
+      message: 'Payment status updated successfully',
+      data: order,
+    };
   }
 }

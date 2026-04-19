@@ -374,4 +374,34 @@ export class OrderService {
 
     return this.cartService.getCart(userId);
   }
+
+  async updatePaymentStatus(orderId: string, paymentStatus: PaymentStatus) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        paymentStatus: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus },
+      include: orderDetailInclude,
+    });
+
+    return updated;
+  }
+
+  async markAsPaid(orderId: string) {
+    return this.updatePaymentStatus(orderId, PaymentStatus.PAID);
+  }
+
+  async markAsUnpaid(orderId: string) {
+    return this.updatePaymentStatus(orderId, PaymentStatus.UNPAID);
+  }
 }
