@@ -232,3 +232,51 @@ export const ApiRiderOrderHistory = () =>
     }),
     ApiUnauthorizedResponse({ description: 'Not a rider' }),
   );
+
+export const ApiRiderAddTime = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOrderIdParam,
+    ApiOperation({
+      summary: 'Add time to estimated arrival',
+      description:
+        'Extends the estimated arrival time by the specified minutes. ' +
+        'Only works for orders that are **OUT_FOR_DELIVERY** and assigned to the rider.',
+    }),
+    ApiBody({
+      required: true,
+      schema: {
+        type: 'object',
+        properties: {
+          timeInMinutes: {
+            type: 'number',
+            example: 15,
+            description: 'Minutes to add to the estimated arrival time (1–180)',
+          },
+        },
+        required: ['timeInMinutes'],
+      },
+    }),
+    ApiOkResponse({
+      description: 'Estimated arrival time updated',
+      schema: {
+        example: {
+          message: 'Estimated arrival time updated',
+          data: {
+            id: 'order-id-123',
+            orderNumber: 'POGK4J524',
+            status: 'OUT_FOR_DELIVERY',
+            estimatedArrivalAt: '2026-04-19T11:15:00Z',
+          },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Order not out for delivery, or no estimated arrival time set',
+    }),
+    ApiNotFoundResponse({
+      description: 'Order not found or not assigned to you',
+    }),
+    ApiUnauthorizedResponse({ description: 'Not a rider' }),
+  );

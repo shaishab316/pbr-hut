@@ -17,6 +17,7 @@ import { JwtGuard, RolesGuard } from '@/common/guards';
 import { DeliverOrderDto } from './dto/deliver-order.dto';
 import { NearbyRiderOrdersDto } from './dto/nearby-rider-orders.dto';
 import { QueryOrderHistoryDto } from './dto/query-order-history.dto';
+import { AddTimeDto } from './dto/add-time.dto';
 import { RiderOrderService } from './rider-order.service';
 import {
   ApiRiderAcceptOrder,
@@ -25,6 +26,7 @@ import {
   ApiRiderListAssigned,
   ApiRiderNearbyRequests,
   ApiRiderOrderHistory,
+  ApiRiderAddTime,
 } from './docs/rider-orders.docs';
 
 @ApiTags('Rider · Orders')
@@ -101,5 +103,16 @@ export class RiderOrderController {
     @Body() dto: DeliverOrderDto,
   ) {
     return this.riderOrderService.deliverOrder(riderId, orderId, dto);
+  }
+
+  @ApiRiderAddTime()
+  @Post(':orderId/add-time')
+  @HttpCode(HttpStatus.OK)
+  addTime(
+    @CurrentUser('id') riderId: string,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Body() dto: AddTimeDto,
+  ) {
+    return this.riderOrderService.addTimeToOrder(riderId, orderId, dto);
   }
 }

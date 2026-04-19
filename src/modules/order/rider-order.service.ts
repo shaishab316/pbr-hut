@@ -15,6 +15,7 @@ import {
 import type { NearbyRiderOrdersInput } from './dto/nearby-rider-orders.dto';
 import type { DeliverOrderInput } from './dto/deliver-order.dto';
 import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
+import type { AddTimeInput } from './dto/add-time.dto';
 
 /** Unassigned delivery orders a rider can claim (includes PENDING until a kitchen workflow narrows this) */
 const RIDER_POOL_STATUSES: OrderStatus[] = [
@@ -363,6 +364,50 @@ export class RiderOrderService {
     return {
       message: 'Delivery completed',
       data: full,
+    };
+  }
+
+  async addTimeToOrder(riderId: string, orderId: string, dto: AddTimeInput) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, assignedRiderId: riderId },
+      select: {
+        id: true,
+        status: true,
+        estimatedArrivalAt: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found or not assigned to you');
+    }
+
+    if (order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+      throw new BadRequestException(
+        'Can only add time to orders that are out for delivery',
+      );
+    }
+
+    if (!order.estimatedArrivalAt) {
+      throw new BadRequestException(
+        'No estimated arrival time set for this order',
+      );
+    }
+
+    const newEstimatedArrivalAt = new Date(
+      order.estimatedArrivalAt.getTime() + dto.timeInMinutes * 60 * 1000,
+    );
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        estimatedArrivalAt: newEstimatedArrivalAt,
+      },
+      include: orderDetailInclude,
+    });
+
+    return {
+      message: 'Estimated arrival time updated',
+      data: updated,
     };
   }
 }
