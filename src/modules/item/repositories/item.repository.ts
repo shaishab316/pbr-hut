@@ -32,7 +32,7 @@ const itemListInclude = {
       categoryId: true,
     },
   },
-  tags: { include: { tag: true } },
+  tags: { select: { tag: true } },
   sizeVariants: {
     omit: {
       itemId: true,
@@ -90,7 +90,10 @@ export class ItemRepository {
       throw new NotFoundException('Item not found or deleted');
     }
 
-    return item;
+    return {
+      ...item,
+      tags: item.tags.map((it) => it.tag),
+    };
   }
 
   // ─── queries ──────────────────────────────────────────────────────────────
@@ -110,7 +113,13 @@ export class ItemRepository {
       this.prisma.item.count({ where }),
     ]);
 
-    return { items, total };
+    return {
+      items: items.map((item) => ({
+        ...item,
+        tags: item.tags.map((it) => it.tag),
+      })),
+      total,
+    };
   }
 
   // ─── mutations ────────────────────────────────────────────────────────────
@@ -144,7 +153,7 @@ export class ItemRepository {
 
   async create(data: CreateItemInput) {
     return this.prisma.$transaction(async (tx) => {
-      return tx.item.create({
+      const item = await tx.item.create({
         data: {
           name: data.name,
           description: data.description,
@@ -181,6 +190,11 @@ export class ItemRepository {
         },
         include: itemListInclude,
       });
+
+      return {
+        ...item,
+        tags: item.tags.map((it) => it.tag),
+      };
     });
   }
 
@@ -204,7 +218,7 @@ export class ItemRepository {
         await tx.itemExtra.deleteMany({ where: { itemId: id } });
       }
 
-      return tx.item.update({
+      const updatedItem = await tx.item.update({
         where: { id },
         data: {
           ...(data.name !== undefined && { name: data.name }),
@@ -274,6 +288,11 @@ export class ItemRepository {
         },
         include: itemListInclude,
       });
+
+      return {
+        ...updatedItem,
+        tags: updatedItem.tags.map((it) => it.tag),
+      };
     });
   }
 

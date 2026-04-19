@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
@@ -15,6 +16,8 @@ import { safeJsonParse } from '@/common/utils/safeJsonParse';
 import { AdsService } from './ads.service';
 import { CreateAdsDto, createAdsSchema } from './dto/create-ads.dto';
 import { UpdateAdsDto, updateAdsSchema } from './dto/update-ads.dto';
+import { JwtGuard, RolesGuard } from '@/common/guards';
+import { Roles } from '@/common/decorators';
 
 const AdsMediaUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -32,6 +35,8 @@ export class AdsController {
   constructor(private readonly adsService: AdsService) {}
 
   @Post()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
   @UseInterceptors(AdsMediaUploadInterceptor)
   async createAds(
     @UploadedFiles() files: { media?: Express.Multer.File[] },
@@ -83,6 +88,8 @@ export class AdsController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
   @UseInterceptors(AdsMediaUploadInterceptor)
   async updateAds(
     @Param('id') adsId: string,
@@ -112,6 +119,8 @@ export class AdsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
   async deleteAds(@Param('id') adsId: string) {
     const deletedAds = await this.adsService.deleteAds(adsId);
 
