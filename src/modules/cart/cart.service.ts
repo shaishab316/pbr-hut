@@ -295,8 +295,14 @@ export class CartService {
     // without breaking the single responsibility of the main function.
     return {
       distance: parseFloat(distance.toFixed(2)),
-      deliveryFee: restaurant.baseDeliveryFee,
+      deliveryFee: Number(
+        (
+          Number(restaurant.baseDeliveryFee.toString()) *
+          (1 + distance / 10)
+        ).toFixed(2),
+      ),
       currency: 'USD',
+      distanceUnit: 'km',
     };
   }
 
