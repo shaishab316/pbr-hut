@@ -170,3 +170,65 @@ export const ApiRiderDeliverOrder = () =>
     ApiNotFoundResponse({ description: 'Not assigned to you' }),
     ApiUnauthorizedResponse({ description: 'Not a rider' }),
   );
+
+export const ApiRiderOrderHistory = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'My delivery history',
+      description:
+        'Returns orders that have been **delivered**, **picked up**, or **cancelled** by this rider. ' +
+        'Paginated by `limit` and `page` query parameters.',
+    }),
+    ApiQuery({
+      name: 'limit',
+      required: false,
+      type: Number,
+      example: 20,
+      description: 'Items per page (1–100, default 20)',
+    }),
+    ApiQuery({
+      name: 'page',
+      required: false,
+      type: Number,
+      example: 1,
+      description: 'Page number (starts at 1, default 1)',
+    }),
+    ApiOkResponse({
+      description: 'Delivery history with pagination metadata',
+      schema: {
+        example: {
+          message: 'Order history retrieved successfully',
+          data: [
+            {
+              id: 'order-id-123',
+              orderNumber: 'POGK4J524',
+              type: 'DELIVERY',
+              status: 'DELIVERED',
+              totalAmount: '50.00',
+              createdAt: '2026-04-19T10:30:00Z',
+              deliveredAt: '2026-04-19T11:00:00Z',
+              deliveryAddress: {
+                name: 'John Doe',
+                address: '49 Bir Uttam AK Khandakar Rd',
+              },
+              items: [],
+            },
+          ],
+          meta: {
+            pagination: {
+              page: 1,
+              limit: 20,
+              total: 42,
+              totalPages: 3,
+            },
+            thisMonthOrderTotalCount: 12,
+          },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Invalid query parameters',
+    }),
+    ApiUnauthorizedResponse({ description: 'Not a rider' }),
+  );

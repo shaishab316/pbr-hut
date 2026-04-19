@@ -16,6 +16,7 @@ import { CurrentUser, Roles } from '@/common/decorators';
 import { JwtGuard, RolesGuard } from '@/common/guards';
 import { DeliverOrderDto } from './dto/deliver-order.dto';
 import { NearbyRiderOrdersDto } from './dto/nearby-rider-orders.dto';
+import { QueryOrderHistoryDto } from './dto/query-order-history.dto';
 import { RiderOrderService } from './rider-order.service';
 import {
   ApiRiderAcceptOrder,
@@ -23,6 +24,7 @@ import {
   ApiRiderGetOrder,
   ApiRiderListAssigned,
   ApiRiderNearbyRequests,
+  ApiRiderOrderHistory,
 } from './docs/rider-orders.docs';
 
 @ApiTags('Rider · Orders')
@@ -45,6 +47,30 @@ export class RiderOrderController {
   @Get('assigned')
   listAssigned(@CurrentUser('id') riderId: string) {
     return this.riderOrderService.listAssignedActive(riderId);
+  }
+
+  @ApiRiderOrderHistory()
+  @Get('history')
+  async listHistory(
+    @CurrentUser('id') riderId: string,
+    @Query() query: QueryOrderHistoryDto,
+  ) {
+    const { orders, total, thisMonthOrderTotalCount } =
+      await this.riderOrderService.listOrderHistory(riderId, query);
+
+    return {
+      message: 'Order history retrieved successfully',
+      data: orders,
+      meta: {
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total,
+          totalPages: Math.ceil(total / query.limit),
+        },
+        thisMonthOrderTotalCount,
+      },
+    };
   }
 
   @ApiRiderGetOrder()

@@ -14,6 +14,7 @@ import {
 } from './repositories/order.repository';
 import type { NearbyRiderOrdersInput } from './dto/nearby-rider-orders.dto';
 import type { DeliverOrderInput } from './dto/deliver-order.dto';
+import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
 
 /** Unassigned delivery orders a rider can claim (includes PENDING until a kitchen workflow narrows this) */
 const RIDER_POOL_STATUSES: OrderStatus[] = [
@@ -165,6 +166,49 @@ export class RiderOrderService {
     });
 
     return { message: 'Success', data: orders };
+  }
+
+  async listOrderHistory(userId: string, query: QueryOrderHistoryInput) {
+    const terminalStatuses = [
+      OrderStatus.DELIVERED,
+      OrderStatus.PICKED_UP,
+      OrderStatus.CANCELLED,
+    ];
+
+    const skip = (query.page - 1) * query.limit;
+    const where = {
+      assignedRiderId: userId,
+      status: { in: terminalStatuses },
+    };
+
+    // Calculate start of current month
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const [orders, total, thisMonthOrderTotalCount] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: query.limit,
+        include: orderDetailInclude,
+        omit: { confirmationCode: true },
+      }),
+      this.prisma.order.count({ where }),
+      this.prisma.order.count({
+        where: {
+          assignedRiderId: userId,
+          status: { in: terminalStatuses },
+          createdAt: {
+            gte: monthStart,
+            lt: monthEnd,
+          },
+        },
+      }),
+    ]);
+
+    return { orders, total, thisMonthOrderTotalCount };
   }
 
   async getOrderForRider(userId: string, orderId: string) {
