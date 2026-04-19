@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Response } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -12,6 +12,7 @@ import { AdminDashboardService } from './admin-dashboard.service';
 import { QueryOrdersDto } from './dto/query-order.dto';
 import { Pagination } from '@/common/types/pagination';
 import { QueryRiderDto } from './dto/query-rider.dto';
+import type { Response as ExpressResponse } from 'express';
 
 @ApiTags('Admin — Dashboard')
 @ApiBearerAuth()
@@ -60,5 +61,21 @@ export class AdminDashboardController {
       } satisfies Pagination,
       data: riders,
     };
+  }
+
+  @Get('orders/download/csv')
+  @ApiOperation({ summary: 'Download orders as CSV' })
+  @ApiOkResponse({
+    description: 'CSV file with orders data',
+  })
+  async downloadOrdersCsv(
+    @Query() dto: QueryOrdersDto,
+    @Response() res: ExpressResponse,
+  ) {
+    const csv = await this.adminDashboardService.generateOrdersCsv(dto);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
+    res.send(csv);
   }
 }

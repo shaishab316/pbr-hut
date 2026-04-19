@@ -1,9 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { DeliveryTiming, Order, OrderStatus, Prisma } from '@prisma/client';
+import { DeliveryTiming, OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import type { QueryOrdersDto } from '@/modules/admin/dashboard/dto/query-order.dto';
 
 export const orderListInclude = {
+  user: {
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      profilePicture: true,
+    },
+  },
   deliveryAddress: true,
   items: {
     orderBy: { id: 'asc' as const },
@@ -72,7 +80,7 @@ export class OrderRepository {
     page,
     status,
     orderBy,
-  }: QueryOrdersDto): Promise<[Order[], number]> {
+  }: QueryOrdersDto): Promise<[OrderWithListPayload[], number]> {
     const where: Prisma.OrderWhereInput = {};
 
     if (status === 'SCHEDULED') {
