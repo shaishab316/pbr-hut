@@ -398,10 +398,28 @@ export class OrderService {
   }
 
   async markAsPaid(orderId: string) {
+    await this.prisma.riderEarning.updateMany({
+      where: {
+        orderId,
+      },
+      data: {
+        status: 'SETTLED',
+      },
+    });
+
     return this.updatePaymentStatus(orderId, PaymentStatus.PAID);
   }
 
   async markAsUnpaid(orderId: string) {
+    await this.prisma.riderEarning.updateMany({
+      where: {
+        orderId,
+      },
+      data: {
+        status: 'PENDING',
+      },
+    });
+
     return this.updatePaymentStatus(orderId, PaymentStatus.UNPAID);
   }
 }

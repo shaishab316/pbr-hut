@@ -334,6 +334,8 @@ export class RiderOrderService {
         id: true,
         status: true,
         confirmationCode: true,
+        deliveryCharge: true,
+        paymentStatus: true,
       },
     });
 
@@ -352,13 +354,30 @@ export class RiderOrderService {
       throw new BadRequestException('Invalid confirmation code');
     }
 
-    const full = await this.prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: OrderStatus.DELIVERED,
-        deliveredAt: new Date(),
-      },
-      include: orderDetailInclude,
+    const full = await this.prisma.$transaction(async (tx) => {
+      // Update order status
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.DELIVERED,
+          deliveredAt: new Date(),
+        },
+        include: orderDetailInclude,
+      });
+
+      // Create earning record
+      await tx.riderEarning.create({
+        data: {
+          riderId,
+          orderId,
+          deliveryFee: order.deliveryCharge,
+          tip: new Prisma.Decimal(0),
+          total: order.deliveryCharge,
+          status: order.paymentStatus === 'PAID' ? 'SETTLED' : 'PENDING',
+        },
+      });
+
+      return updatedOrder;
     });
 
     return {
