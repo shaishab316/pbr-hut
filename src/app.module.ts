@@ -23,6 +23,7 @@ import { OrderModule } from './modules/order/order.module';
 import { RestaurantModule } from './modules/restaurant/restaurant.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AdsModule } from './modules/ads/ads.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AdsModule } from './modules/ads/ads.module';
       isGlobal: true,
       validate: configValidate,
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     UploadModule,
     RedisModule,

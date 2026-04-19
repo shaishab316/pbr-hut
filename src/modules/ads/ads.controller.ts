@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -85,6 +86,12 @@ export class AdsController {
       message: 'Ads retrieved successfully',
       data: ads,
     };
+  }
+
+  @Post(':id/click')
+  @HttpCode(204)
+  async trackClick(@Param('id') adsId: string) {
+    await this.adsService.trackClick(adsId);
   }
 
   @Patch(':id')

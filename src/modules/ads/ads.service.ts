@@ -3,12 +3,14 @@ import { AdsRepository } from './repositories/ads.repository';
 import { CreateAdsDto } from './dto/create-ads.dto';
 import { CloudinaryService } from '../upload/cloudinary.service';
 import { UpdateAdsDto } from './dto/update-ads.dto';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AdsService {
   constructor(
     private readonly adsRepository: AdsRepository,
     private readonly cloudinary: CloudinaryService,
+    private readonly redis: RedisService,
   ) {}
 
   async createAds(dto: CreateAdsDto, file: Express.Multer.File) {
@@ -90,5 +92,20 @@ export class AdsService {
     }
 
     return this.adsRepository.delete(adsId);
+  }
+
+  async trackClick(adsId: string) {
+    await this.redis.getClient().incr(`banner:clicks:${adsId}`);
+  }
+
+  async flushClickCounts() {
+    const keys = await this.redis.getClient().keys('banner:clicks:*');
+
+    for (const key of keys) {
+      const count = await this.redis.getClient().getdel(key);
+      if (!count) continue;
+      const id = key.split(':')[2];
+      await this.adsRepository.incrementClickCount(id, Number(count));
+    }
   }
 }

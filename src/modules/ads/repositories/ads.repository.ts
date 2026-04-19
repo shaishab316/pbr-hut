@@ -38,4 +38,11 @@ export class AdsRepository {
       where: { id: adsId },
     });
   }
+
+  incrementClickCount(adsId: string, count: number) {
+    return this.prisma.bannerAds.update({
+      where: { id: adsId },
+      data: { clickCount: { increment: count } },
+    });
+  }
 }
