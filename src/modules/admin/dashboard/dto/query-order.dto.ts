@@ -25,12 +25,14 @@ export const QueryOrdersSchema = z.object({
   status: z
     .enum([...(Object.values(OrderStatus) as OrderStatus[]), 'SCHEDULED'])
     .optional(),
-  orderBy: z.enum(
-    orderSortKeys.flatMap((k) => [
-      `+${k}`,
-      `-${k}`,
-    ]) as Array<`${'-' | '+'}${keyof Order}`>,
-  ),
+  orderBy: z
+    .enum(
+      orderSortKeys.flatMap((k) => [
+        `+${k}`,
+        `-${k}`,
+      ]) as Array<`${'-' | '+'}${keyof Order}`>,
+    )
+    .default('-createdAt'),
 });
 
 export class QueryOrdersDto extends createZodDto(QueryOrdersSchema) {}

@@ -17,11 +17,11 @@ import { QueryRiderDto } from './dto/query-rider.dto';
 @ApiBearerAuth()
 @UseGuards(JwtGuard, RolesGuard)
 @Roles('ADMIN')
-@Controller('admin/dashboard')
+@Controller('admin')
 export class AdminDashboardController {
   constructor(private readonly adminDashboardService: AdminDashboardService) {}
 
-  @Get()
+  @Get('dashboard')
   @ApiOperation({ summary: 'Admin dashboard summary' })
   @ApiOkResponse({
     description: 'Stats, weekly revenue, categories, recent orders, top items',
@@ -30,7 +30,7 @@ export class AdminDashboardController {
     return this.adminDashboardService.getSummary();
   }
 
-  @Get('/admin/orders')
+  @Get('orders')
   async getAllOrders(@Query() dto: QueryOrdersDto) {
     const [orders, total] = await this.adminDashboardService.getAllOrders(dto);
 
@@ -46,7 +46,7 @@ export class AdminDashboardController {
     };
   }
 
-  @Get('/admin/riders')
+  @Get('riders')
   async getAllRiders(@Query() dto: QueryRiderDto) {
     const [riders, total] = await this.adminDashboardService.getAllRiders(dto);
 
