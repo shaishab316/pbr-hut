@@ -279,17 +279,17 @@ export class CartService {
     );
 
     // 4. Validate Delivery Radius (SRP: Extracted Validation)
-    this.validateDeliveryDistance(distance, restaurant.deliveryRadius);
+    // this.validateDeliveryDistance(distance, restaurant.deliveryRadius);
 
     // 5. Calculate Cart Total (SRP: Extracted Calculation)
     const cartTotal = this.calculateCartTotal(cart.items);
 
     // 6. Validate Minimum Order (KISS: Direct comparison using DB config)
-    if (cartTotal.lessThan(restaurant.minimumOrderAmountCOD)) {
-      throw new BadRequestException(
-        `Minimum order amount is ${restaurant.minimumOrderAmountCOD.toString()}`,
-      );
-    }
+    // if (cartTotal.lessThan(restaurant.minimumOrderAmountCOD)) {
+    //   throw new BadRequestException(
+    //     `Minimum order amount is ${restaurant.minimumOrderAmountCOD.toString()}`,
+    //   );
+    // }
 
     // Note: You can add complex logic here later (e.g., distance multipliers)
     // without breaking the single responsibility of the main function.

@@ -1,4 +1,4 @@
-import type { Env } from '@/config/app.config';
+import type { Env } from '@/common/config/app.config';
 import {
   Injectable,
   OnModuleInit,

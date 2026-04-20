@@ -127,6 +127,11 @@ const envSchema = z.object({
     .string()
     .describe('A fixed OTP for testing purposes, do not use in production')
     .default('123456'),
+
+  LOKI_URL: z
+    .url('LOKI_URL must be a valid URL')
+    .default('http://localhost:3100')
+    .describe('Loki logging server URL'),
 });
 
 export const validate = (config: Record<string, unknown>) => {

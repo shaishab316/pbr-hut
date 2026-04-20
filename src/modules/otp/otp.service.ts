@@ -1,4 +1,4 @@
-import type { Env } from '@/config/app.config';
+import type { Env } from '@/common/config/app.config';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { totp } from 'otplib';

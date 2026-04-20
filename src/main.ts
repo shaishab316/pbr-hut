@@ -9,11 +9,15 @@ import helmet from 'helmet';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import { setupApiDocs } from './common/config/api-docs.config';
-import type { Env } from './config/app.config';
+import type { Env } from './common/config/app.config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+
   const config = app.get(ConfigService<Env, true>);
 
   //? security headers

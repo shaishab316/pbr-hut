@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { OtpService } from './otp.service';
-import { Env } from '@/config/app.config';
+import { Env } from '@/common/config/app.config';
 
 const mockConfig = {
   get: jest.fn((key: string) => {
