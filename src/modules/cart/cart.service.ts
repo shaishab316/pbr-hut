@@ -256,6 +256,7 @@ export class CartService {
 
   async getDeliveryFee(userId: string, dto: DeliveryFeeDto) {
     // 1. Fetch Data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [cart, restaurant] = await Promise.all([
       this.cartRepo.findCartWithItemsByUserId(userId),
       this.restaurantCacheRepo.getPrimary(),
@@ -282,7 +283,7 @@ export class CartService {
     // this.validateDeliveryDistance(distance, restaurant.deliveryRadius);
 
     // 5. Calculate Cart Total (SRP: Extracted Calculation)
-    const cartTotal = this.calculateCartTotal(cart.items);
+    // const cartTotal = this.calculateCartTotal(cart.items);
 
     // 6. Validate Minimum Order (KISS: Direct comparison using DB config)
     // if (cartTotal.lessThan(restaurant.minimumOrderAmountCOD)) {
@@ -339,11 +340,11 @@ export class CartService {
   /**
    * Validates if the delivery distance is within the restaurant's radius.
    */
-  private validateDeliveryDistance(distance: number, maxRadius: number): void {
-    if (distance > maxRadius) {
-      throw new BadRequestException(
-        'Sorry, we do not deliver to this location.',
-      );
-    }
-  }
+  // private validateDeliveryDistance(distance: number, maxRadius: number): void {
+  //   if (distance > maxRadius) {
+  //     throw new BadRequestException(
+  //       'Sorry, we do not deliver to this location.',
+  //     );
+  //   }
+  // }
 }
