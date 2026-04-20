@@ -11,7 +11,11 @@ import { AppModule } from './app.module';
 import { setupApiDocs } from './common/config/api-docs.config';
 import type { Env } from './common/config/app.config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import {
+  WINSTON_MODULE_NEST_PROVIDER,
+  WINSTON_MODULE_PROVIDER,
+} from 'nest-winston';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -49,7 +53,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   //? global exception filter
-  // app.useGlobalFilters(new GlobalExceptionFilter()); //* TODO: implement a global exception filter to handle all exceptions in a consistent way
+  app.useGlobalFilters(
+    new GlobalExceptionFilter(app.get(WINSTON_MODULE_PROVIDER)),
+  );
 
   setupApiDocs(app);
 
