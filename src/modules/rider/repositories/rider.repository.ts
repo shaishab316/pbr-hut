@@ -4,7 +4,7 @@ import {
   RIDER_PROFILE_SORT_KEYS,
 } from '@/modules/admin/dashboard/dto/query-rider.dto';
 import { userSearchableFields } from '@/modules/user/user.constant';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { NidStatus, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -18,6 +18,14 @@ export class RiderRepository {
   }
 
   async updateProfile(userId: string, data: Prisma.RiderProfileUpdateInput) {
+    const profile = await this.prisma.riderProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Rider profile not found');
+    }
+
     return this.prisma.riderProfile.update({
       where: { userId },
       data,
@@ -66,6 +74,9 @@ export class RiderRepository {
   async findById(userId: string) {
     return this.prisma.riderProfile.findUnique({
       where: { userId },
+      include: {
+        user: { omit: { passwordHash: true } },
+      },
     });
   }
 

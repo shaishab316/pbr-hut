@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { AdminDashboardRepository } from './repositories/dashboard.repository';
 import { OrderRepository } from '@/modules/order/repositories/order.repository';
 import { QueryOrdersDto } from './dto/query-order.dto';
 import { RiderRepository } from '@/modules/rider/repositories/rider.repository';
 import { QueryRiderDto } from './dto/query-rider.dto';
+import { MAIL_QUEUE } from '@/common/mail/mail.constants';
+import type { SendMailData } from '@/common/mail/mail.processor';
 
 @Injectable()
 export class AdminDashboardService {
@@ -11,6 +15,7 @@ export class AdminDashboardService {
     private readonly adminDashboardRepository: AdminDashboardRepository,
     private readonly orderRepository: OrderRepository,
     private readonly riderRepository: RiderRepository,
+    @InjectQueue(MAIL_QUEUE) private readonly mailQueue: Queue,
   ) {}
 
   async getSummary() {
@@ -121,6 +126,64 @@ export class AdminDashboardService {
       [headers, ...rows].map((row) => row.join(',')).join('\n') + '\n';
 
     return csv;
+  }
+
+  async approveRiderNid(userId: string) {
+    const riderProfile = await this.riderRepository.updateProfile(userId, {
+      nidStatus: 'VERIFIED',
+      verifiedAt: new Date(),
+    });
+
+    // Get rider user data for email
+    const rider = await this.riderRepository.findById(userId);
+
+    if (rider?.user?.email) {
+      await this.mailQueue.add(
+        MAIL_QUEUE,
+        {
+          email: rider.user.email,
+          subject: '✅ Your NID has been approved - PBR Hut',
+          body: `Hi ${rider.user.name || 'Rider'},\n\nCongratulations! Your NID has been successfully verified and approved. You can now start accepting deliveries on PBR Hut.\n\nYour account is now fully active. Thank you for joining our rider network!\n\nBest regards,\nThe PBR Hut Team`,
+        } satisfies SendMailData,
+        {
+          attempts: 2,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: { age: 10 * 60 },
+        },
+      );
+    }
+
+    return riderProfile;
+  }
+
+  async declineRiderNid(userId: string, rejectionReason: string) {
+    const riderProfile = await this.riderRepository.updateProfile(userId, {
+      nidStatus: 'REJECTED',
+      rejectionReason,
+    });
+
+    // Get rider user data for email
+    const rider = await this.riderRepository.findById(userId);
+
+    if (rider?.user?.email) {
+      await this.mailQueue.add(
+        MAIL_QUEUE,
+        {
+          email: rider.user.email,
+          subject: '❌ Your NID verification was not approved - PBR Hut',
+          body: `Hi ${rider.user.name || 'Rider'},\n\nUnfortunately, your NID submission could not be approved at this time.\n\nReason: ${rejectionReason}\n\nPlease contact our support team for more information or to resubmit your NID.\n\nBest regards,\nThe PBR Hut Team`,
+        } satisfies SendMailData,
+        {
+          attempts: 2,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: { age: 10 * 60 },
+        },
+      );
+    }
+
+    return riderProfile;
   }
 
   private escapeCsv(value: string | null | undefined): string {

@@ -1,4 +1,13 @@
-import { Controller, Get, Query, UseGuards, Response } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Response,
+  Post,
+  Body,
+  HttpCode,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -12,6 +21,7 @@ import { AdminDashboardService } from './admin-dashboard.service';
 import { QueryOrdersDto } from './dto/query-order.dto';
 import { Pagination } from '@/common/types/pagination';
 import { QueryRiderDto } from './dto/query-rider.dto';
+import { ApproveNidDto, DeclineNidDto } from './dto/nid-action.dto';
 import type { Response as ExpressResponse } from 'express';
 import { CacheKey, CacheTTL } from '@/common/decorators/cache.decorator';
 
@@ -84,5 +94,38 @@ export class AdminDashboardController {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename=orders.csv');
     res.send(csv);
+  }
+
+  @Post('riders/nid/approve')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Approve rider NID' })
+  @ApiOkResponse({
+    description: 'Rider NID approved successfully',
+  })
+  async approveRiderNid(@Body() dto: ApproveNidDto) {
+    const data = await this.adminDashboardService.approveRiderNid(dto.userId);
+
+    return {
+      message: 'Rider NID approved successfully',
+      data,
+    };
+  }
+
+  @Post('riders/nid/decline')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Decline rider NID' })
+  @ApiOkResponse({
+    description: 'Rider NID declined successfully',
+  })
+  async declineRiderNid(@Body() dto: DeclineNidDto) {
+    const data = await this.adminDashboardService.declineRiderNid(
+      dto.userId,
+      dto.rejectionReason,
+    );
+
+    return {
+      message: 'Rider NID declined successfully',
+      data,
+    };
   }
 }
