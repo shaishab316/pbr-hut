@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   type CallHandler,
   type ExecutionContext,
   type NestInterceptor,
@@ -10,10 +11,27 @@ import { map } from 'rxjs/operators';
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(ResponseInterceptor.name);
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const res = context.switchToHttp().getResponse();
+    const req = context.switchToHttp().getRequest();
+    const startTime = Date.now();
+    const { method, url, user } = req;
 
-    return next.handle().pipe(map((data) => this.buildResponse(data, res)));
+    this.logger.debug(
+      `📤 Incoming request: ${method} ${url}${user ? ` [User: ${user.id}]` : ''}`,
+    );
+
+    return next.handle().pipe(
+      map((data) => {
+        const duration = Date.now() - startTime;
+        this.logger.debug(
+          `✅ Request completed: ${method} ${url} - ${res.statusCode} (${duration}ms)`,
+        );
+        return this.buildResponse(data, res);
+      }),
+    );
   }
 
   private buildResponse(data: any, res: Response) {

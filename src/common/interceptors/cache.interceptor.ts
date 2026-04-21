@@ -15,6 +15,8 @@ export const INVALIDATE_CACHE_METADATA = 'invalidate_cache';
 
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(CacheInterceptor.name);
+
   constructor(
     private readonly redis: RedisService,
     private readonly reflector: Reflector,
@@ -40,6 +42,9 @@ export class CacheInterceptor implements NestInterceptor {
     );
 
     if (invalidateKeys?.length) {
+      this.logger.debug(
+        `♻️  Cache invalidation keys: ${invalidateKeys.length}`,
+      );
       return next.handle().pipe(
         mergeMap(async (data) => {
           const resolvedKeys = invalidateKeys.map((key) =>
@@ -72,16 +77,25 @@ export class CacheInterceptor implements NestInterceptor {
       this.reflector.get<number>(CACHE_TTL_METADATA, context.getHandler()) ??
       60;
 
+    this.logger.debug(`🔍 Checking cache for: ${resolvedCacheKey}`);
+
     try {
       const cached = await this.redis.get<any>(({ RESPONSE }) =>
         RESPONSE(resolvedCacheKey),
       );
 
       if (cached) {
+        this.logger.log(`⚡ Cache HIT: ${resolvedCacheKey} (TTL: ${ttl}s)`);
         res.setHeader('X-Cache', 'HIT');
         return of(cached);
       }
-    } catch {
+
+      this.logger.log(`🛋 Cache MISS: ${resolvedCacheKey}`);
+    } catch (error) {
+      this.logger.warn(
+        `⚠️ Cache retrieval error for ${resolvedCacheKey}:`,
+        error,
+      );
       /* no-op */
     }
 
@@ -94,7 +108,14 @@ export class CacheInterceptor implements NestInterceptor {
             data,
             ttl,
           );
-        } catch {
+          this.logger.debug(
+            `💾 Cache stored: ${resolvedCacheKey} (TTL: ${ttl}s)`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `⚠️ Cache storage error for ${resolvedCacheKey}:`,
+            error,
+          );
           /* no-op */
         }
         return data;

@@ -3,6 +3,7 @@ import {
   Catch,
   ExceptionFilter,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Prisma } from '@prisma/client';
@@ -20,6 +21,8 @@ interface ErrorResponse {
   MulterError,
 )
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
+
   constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
   catch(
@@ -31,18 +34,31 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   ): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
+    const request = ctx.getRequest();
+    const { method, url } = request;
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string = 'Internal server error';
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      this.logger.warn(
+        `Prisma error (${exception.code}): ${exception.message}`,
+      );
       ({ status, message } = this.resolvePrismaException(exception));
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
+      this.logger.warn('Prisma validation error detected');
       status = HttpStatus.BAD_REQUEST;
       message = 'Validation error: invalid data provided';
     } else if (exception instanceof MulterError) {
+      this.logger.warn(
+        `File upload error (${exception.code}): ${exception.message}`,
+      );
       ({ status, message } = this.resolveMulterException(exception));
     }
+
+    this.logger.error(
+      `Exception caught: ${method} ${url} - Status: ${status} - ${message}`,
+    );
 
     const responseBody: ErrorResponse = {
       statusCode: status,

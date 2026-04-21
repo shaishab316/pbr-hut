@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -33,6 +34,8 @@ export type ResetPasswordTokenPayload = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authCacheRepo: AuthCacheRepository,
     private readonly userRepo: UserRepository,
@@ -43,63 +46,99 @@ export class AuthService {
   ) {}
 
   async signUp(signUpDto: SignUpInput) {
-    const strategy = this.contactStrategyFactory.resolve(
-      signUpDto.identifierType,
+    this.logger.log(
+      `📝 Sign up attempt: ${signUpDto.identifierType} - ${signUpDto.name}`,
     );
 
-    const existingUser = await strategy.findExistingUser(signUpDto);
-    if (existingUser) {
-      throw new BadRequestException(
-        'Already have an account with this identifier, please login instead',
+    try {
+      const strategy = this.contactStrategyFactory.resolve(
+        signUpDto.identifierType,
       );
+
+      const existingUser = await strategy.findExistingUser(signUpDto);
+      if (existingUser) {
+        this.logger.warn(
+          `⚠️ Sign up failed: User already exists - ${signUpDto.identifierType}`,
+        );
+        throw new BadRequestException(
+          'Already have an account with this identifier, please login instead',
+        );
+      }
+
+      const identifier = strategy.getIdentifier(signUpDto);
+
+      const unverifiedUser = {
+        role: UserRole.CUSTOMER,
+
+        name: signUpDto.name,
+        ...strategy.buildContactFields(signUpDto),
+        passwordHash: await hashPassword(signUpDto.password),
+        createdAt: new Date(),
+
+        //? We need this to know which strategy to use when resending OTP or verifying from cache
+        identifierType: signUpDto.identifierType,
+      } satisfies UnverifiedUser;
+
+      await this.authCacheRepo.saveUnverifiedUser(identifier, unverifiedUser);
+      this.logger.debug(`💾 Unverified user saved to cache: ${identifier}`);
+
+      await this.sendOtp(unverifiedUser);
+      this.logger.log(`📧 OTP sent for registration: ${identifier}`);
+
+      return { identifier };
+    } catch (error) {
+      this.logger.error(
+        `❌ Sign up failed for ${signUpDto.identifierType}:`,
+        error,
+      );
+      throw error;
     }
-
-    const identifier = strategy.getIdentifier(signUpDto);
-
-    const unverifiedUser = {
-      role: UserRole.CUSTOMER,
-
-      name: signUpDto.name,
-      ...strategy.buildContactFields(signUpDto),
-      passwordHash: await hashPassword(signUpDto.password),
-      createdAt: new Date(),
-
-      //? We need this to know which strategy to use when resending OTP or verifying from cache
-      identifierType: signUpDto.identifierType,
-    } satisfies UnverifiedUser;
-
-    await this.authCacheRepo.saveUnverifiedUser(identifier, unverifiedUser);
-
-    await this.sendOtp(unverifiedUser);
-
-    return { identifier };
   }
 
   async verifyOtp(
     dto: VerifyOtpInput,
   ): Promise<{ flow: VerifyOtpFlow; data?: any }> {
-    const strategy = this.contactStrategyFactory.resolve(dto.identifierType);
+    this.logger.debug(
+      `🔐 OTP verification attempt: ${dto.identifierType} - Flow: ${dto.flow}`,
+    );
 
-    const identifier = strategy.getIdentifier(dto);
+    try {
+      const strategy = this.contactStrategyFactory.resolve(dto.identifierType);
 
-    //? route using flow
-    if (dto.flow === 'register') {
-      return this.verifyOtpForRegistration(identifier, dto.otp);
+      const identifier = strategy.getIdentifier(dto);
+
+      //? route using flow
+      if (dto.flow === 'register') {
+        this.logger.log(`✅ Verifying OTP for registration: ${identifier}`);
+        return this.verifyOtpForRegistration(identifier, dto.otp);
+      }
+
+      const user = await strategy.findExistingUser(dto);
+
+      if (!user) {
+        this.logger.warn(
+          `⚠️ OTP verification failed: User not found - ${identifier}`,
+        );
+        throw new UnauthorizedException('Invalid credentials, user not found');
+      }
+
+      this.logger.log(`✅ Verifying OTP for password reset: ${identifier}`);
+      return this.verifyOtpForPasswordReset(user, dto.otp);
+    } catch (error) {
+      this.logger.error('❌ OTP verification failed:', error);
+      throw error;
     }
-
-    const user = await strategy.findExistingUser(dto);
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials, user not found');
-    }
-
-    return this.verifyOtpForPasswordReset(user, dto.otp);
   }
 
   private async verifyOtpForRegistration(identifier: string, otp: string) {
+    this.logger.debug(`🔍 Verifying OTP for registration: ${identifier}`);
+
     const isValid = this.otpService.verify(otp, identifier);
 
     if (!isValid) {
+      this.logger.warn(
+        `⚠️ Invalid or expired OTP for registration: ${identifier}`,
+      );
       throw new UnauthorizedException('Invalid or expired OTP');
     }
 
@@ -107,6 +146,7 @@ export class AuthService {
       await this.authCacheRepo.getUnverifiedUser(identifier);
 
     if (!unverifiedUser) {
+      this.logger.warn(`⚠️ Session expired for registration: ${identifier}`);
       throw new BadRequestException('Session expired, please sign up again');
     }
 
@@ -117,7 +157,8 @@ export class AuthService {
 
     switch (userData.role) {
       case UserRole.CUSTOMER: {
-        await this.userRepo.create(userData);
+        const user = await this.userRepo.create(userData);
+        this.logger.log(`✅ Customer registered successfully: ${user.id}`);
         break;
       }
       case UserRole.RIDER: {
@@ -125,6 +166,9 @@ export class AuthService {
         const h3Index = H3IndexUtil.encodeH3(latitude, longitude);
 
         const user = await this.userRepo.create(riderData);
+        this.logger.log(
+          `✅ Rider registered successfully: ${user.id} at H3: ${h3Index}`,
+        );
 
         await this.riderRepo.createProfile({
           user: {

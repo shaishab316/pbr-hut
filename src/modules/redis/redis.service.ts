@@ -52,9 +52,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async get<T = unknown>(keyFn: (ctx: Ctx) => string): Promise<T | null> {
-    const value = await this.client.get(keyFn(CACHE_KEY));
+    const key = keyFn(CACHE_KEY);
+    this.logger.debug(`🔍 Redis GET: ${key}`);
 
-    if (!value) return null;
+    const value = await this.client.get(key);
+
+    if (!value) {
+      this.logger.debug(`🛋 Redis key not found: ${key}`);
+      return null;
+    }
 
     // JSON.parse() is expensive and throws errors on standard strings.
     // We do a fast check to see if it even looks like JSON before parsing.
@@ -64,6 +70,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     if (looksLikeJson) {
       try {
+        this.logger.debug(`✅ Redis parsed JSON for key: ${key}`);
         return JSON.parse(value) as T;
       } catch {
         return value as unknown as T;
@@ -81,6 +88,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const key = keyFn(CACHE_KEY);
     const data = typeof value === 'string' ? value : JSON.stringify(value);
 
+    this.logger.debug(
+      `💾 Redis SET: ${key}${expireInSeconds ? ` (expires: ${expireInSeconds}s)` : ''}`,
+    );
+
     if (expireInSeconds) {
       await this.client.set(key, data, 'EX', expireInSeconds);
     } else {
@@ -89,11 +100,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async del(keyFn: (ctx: Ctx) => string): Promise<void> {
-    await this.client.del(keyFn(CACHE_KEY));
+    const key = keyFn(CACHE_KEY);
+    this.logger.debug(`🗑️  Redis DEL: ${key}`);
+    await this.client.del(key);
   }
 
   async exists(keyFn: (ctx: Ctx) => string): Promise<boolean> {
-    return (await this.client.exists(keyFn(CACHE_KEY))) > 0;
+    const key = keyFn(CACHE_KEY);
+    const result = (await this.client.exists(key)) > 0;
+    this.logger.debug(`🔍 Redis EXISTS: ${key} - ${result}`);
+    return result;
   }
 
   async deleteByPattern(keyFn: (ctx: Ctx) => string): Promise<number> {

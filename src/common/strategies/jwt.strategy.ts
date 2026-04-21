@@ -1,5 +1,5 @@
 import { UserRepository } from '@/modules/user/repositories/user.repository';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -12,6 +12,8 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(
     readonly config: ConfigService<Env, true>,
     private readonly userRepository: UserRepository,
@@ -20,11 +22,28 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: config.get('JWT_SECRET', { infer: true }),
     });
+    this.logger.log('JWT strategy initialized');
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.userRepository.findById(payload.sub);
-    if (!user) throw new UnauthorizedException();
-    return user; //? attached to req.user
+    this.logger.debug(`Validating JWT payload for user ID: ${payload.sub}`);
+
+    try {
+      const user = await this.userRepository.findById(payload.sub);
+
+      if (!user) {
+        this.logger.warn(`User not found for ID: ${payload.sub}`);
+        throw new UnauthorizedException('User not found');
+      }
+
+      this.logger.debug(`User ${payload.sub} authenticated successfully`);
+      return user; //? attached to req.user
+    } catch (error) {
+      this.logger.error(
+        `JWT validation failed for user ${payload.sub}:`,
+        error,
+      );
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 }

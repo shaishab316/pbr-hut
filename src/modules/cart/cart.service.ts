@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -23,33 +24,48 @@ function sortIds(ids: string[]): string[] {
 
 @Injectable()
 export class CartService {
+  private readonly logger = new Logger(CartService.name);
+
   constructor(
     private readonly cartRepo: CartRepository,
     private readonly restaurantCacheRepo: RestaurantCacheRepository,
   ) {}
 
   async getCart(userId: string) {
+    this.logger.debug(`📦 Fetching cart for user: ${userId}`);
     const data = await this.cartRepo.findCartWithItemsByUserId(userId);
-
+    this.logger.debug(
+      `📦 Cart fetched: ${data.items.length} items for user ${userId}`,
+    );
     return data;
   }
 
   private async validateItemForCart(dto: AddCartItemInput) {
+    this.logger.debug(`✔️ Validating item: ${dto.itemId}`);
+
     const item = await this.cartRepo.findItemForCartValidation(dto.itemId);
 
     if (!item) {
+      this.logger.warn(`⚠️ Item not found in cart validation: ${dto.itemId}`);
       throw new NotFoundException('Item not found');
     }
 
     if (!item.isAvailable) {
+      this.logger.warn(`⚠️ Item not available for cart: ${dto.itemId}`);
       throw new BadRequestException('Item is not available');
     }
 
     if (item.hasSizeVariants) {
       if (!dto.selectedSizeVariantId) {
+        this.logger.warn(
+          `⚠️ Size variant required but not provided for item: ${dto.itemId}`,
+        );
         throw new BadRequestException('Size variant is required for this item');
       }
     } else if (dto.selectedSizeVariantId) {
+      this.logger.warn(
+        `⚠️ Size variant provided but not expected for item: ${dto.itemId}`,
+      );
       throw new BadRequestException('This item does not use size variants');
     }
 
@@ -58,6 +74,7 @@ export class CartService {
       : null;
 
     if (item.hasSizeVariants && !sizeVariant) {
+      this.logger.warn(`⚠️ Invalid size variant for item: ${dto.itemId}`);
       throw new BadRequestException('Invalid size variant for this item');
     }
 
@@ -66,37 +83,50 @@ export class CartService {
     );
 
     if (!side) {
+      this.logger.warn(`⚠️ Invalid side option for item: ${dto.itemId}`);
       throw new BadRequestException('Invalid side option for this item');
     }
 
     if (item.hasExtras) {
       const uniqueExtraIds = new Set(dto.extraIds);
       if (uniqueExtraIds.size !== dto.extraIds.length) {
+        this.logger.warn(
+          `⚠️ Duplicate extras provided for item: ${dto.itemId}`,
+        );
         throw new BadRequestException('Duplicate extras are not allowed');
       }
 
       for (const extraId of dto.extraIds) {
         const found = item.extras.some((e) => e.id === extraId);
         if (!found) {
+          this.logger.warn(
+            `⚠️ Invalid extra ID for item: ${dto.itemId} - Extra: ${extraId}`,
+          );
           throw new BadRequestException('Invalid extra for this item');
         }
       }
 
       if (!item.isExtrasOptional && dto.extraIds.length === 0) {
+        this.logger.warn(`⚠️ Required extras missing for item: ${dto.itemId}`);
         throw new BadRequestException(
           'At least one extra is required for this item',
         );
       }
     } else if (dto.extraIds.length > 0) {
+      this.logger.warn(
+        `⚠️ Extras provided but not expected for item: ${dto.itemId}`,
+      );
       throw new BadRequestException('This item does not have extras');
     }
 
     if (!item.allowCustomNote && normalizeNote(dto.customNote)) {
+      this.logger.warn(`⚠️ Custom notes not allowed for item: ${dto.itemId}`);
       throw new BadRequestException(
         'Custom notes are not allowed for this item',
       );
     }
 
+    this.logger.debug(`✅ Item validation passed: ${dto.itemId}`);
     return {
       item,
       sizeVariant,

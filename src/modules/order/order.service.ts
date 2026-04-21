@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -59,6 +60,8 @@ function computeUnitPrice(line: CartWithItems['items'][0]): Prisma.Decimal {
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cartRepo: CartRepository,
@@ -67,161 +70,196 @@ export class OrderService {
   ) {}
 
   async placeOrder(userId: string, dto: CreateOrderInput) {
-    const cart = await this.cartRepo.findCartWithItemsByUserId(userId);
-    if (cart.items.length === 0) {
-      throw new BadRequestException('Cart is empty');
-    }
+    this.logger.log(`🛒 Placing order for user: ${userId} - Type: ${dto.type}`);
 
-    for (const line of cart.items) {
-      if (line.item.deletedAt != null) {
-        throw new BadRequestException(
-          `Item "${line.item.name}" is no longer available`,
-        );
+    try {
+      const cart = await this.cartRepo.findCartWithItemsByUserId(userId);
+      if (cart.items.length === 0) {
+        this.logger.warn(`⚠️ Cart is empty for user: ${userId}`);
+        throw new BadRequestException('Cart is empty');
       }
-      if (!line.item.isAvailable) {
-        throw new BadRequestException(
-          `Item "${line.item.name}" is not available`,
-        );
-      }
-      if (!line.selectedSideOption) {
-        throw new BadRequestException(
-          `Cart line for "${line.item.name}" is missing a side option`,
-        );
-      }
-    }
 
-    let itemsTotal = new Prisma.Decimal(0);
-    for (const line of cart.items) {
-      const unit = computeUnitPrice(line);
-      itemsTotal = itemsTotal.add(unit.mul(line.quantity));
-    }
+      this.logger.debug(`📦 Cart items count: ${cart.items.length}`);
 
-    const taxes = new Prisma.Decimal(0);
-    let deliveryCharge = new Prisma.Decimal(0);
-
-    if (dto.type === OrderType.DELIVERY) {
-      const feeData = await this.cartService.getDeliveryFee(userId, {
-        latitude: dto.deliveryAddress.latitude,
-        longitude: dto.deliveryAddress.longitude,
-      });
-
-      deliveryCharge = new Prisma.Decimal(feeData.deliveryFee.toString());
-    }
-
-    const totalAmount = itemsTotal.add(taxes).add(deliveryCharge);
-
-    const scheduledAt =
-      dto.deliveryTiming === DeliveryTiming.SCHEDULED ? dto.scheduledAt : null;
-
-    const estimatedArrivalAt =
-      dto.type === OrderType.DELIVERY
-        ? new Date(Date.now() + ETA_MINUTES * 60 * 1000)
-        : null;
-
-    let h3Index: string | undefined;
-    if (dto.type === OrderType.DELIVERY && dto.deliveryAddress) {
-      const lat = dto.deliveryAddress.latitude;
-      const lng = dto.deliveryAddress.longitude;
-      if (lat != null && lng != null) {
-        h3Index = H3IndexUtil.encodeH3(lat, lng);
-      }
-    }
-
-    const order = await this.prisma.$transaction(async (tx) => {
-      let orderNumber = generateOrderNumber();
-      for (let attempt = 0; attempt < 24; attempt++) {
-        const clash = await tx.order.findUnique({
-          where: { orderNumber },
-          select: { id: true },
-        });
-        if (!clash) break;
-        if (attempt === 23) {
-          throw new BadRequestException('Could not allocate order number');
+      for (const line of cart.items) {
+        if (line.item.deletedAt != null) {
+          this.logger.warn(
+            `⚠️ Item deleted: "${line.item.name}" for user: ${userId}`,
+          );
+          throw new BadRequestException(
+            `Item "${line.item.name}" is no longer available`,
+          );
         }
-        orderNumber = generateOrderNumber();
+        if (!line.item.isAvailable) {
+          this.logger.warn(
+            `⚠️ Item unavailable: "${line.item.name}" for user: ${userId}`,
+          );
+          throw new BadRequestException(
+            `Item "${line.item.name}" is not available`,
+          );
+        }
+        if (!line.selectedSideOption) {
+          this.logger.warn(
+            `⚠️ Missing side option for item: "${line.item.name}" for user: ${userId}`,
+          );
+          throw new BadRequestException(
+            `Cart line for "${line.item.name}" is missing a side option`,
+          );
+        }
       }
 
-      const confirmationCode = randomConfirmationCode();
+      let itemsTotal = new Prisma.Decimal(0);
+      for (const line of cart.items) {
+        const unit = computeUnitPrice(line);
+        itemsTotal = itemsTotal.add(unit.mul(line.quantity));
+      }
 
-      const created = await tx.order.create({
-        data: {
-          userId,
-          orderNumber,
-          confirmationCode,
-          type: dto.type,
-          paymentMethod: dto.paymentMethod,
-          paymentStatus: PaymentStatus.UNPAID,
-          deliveryTiming: dto.deliveryTiming,
-          scheduledAt,
-          itemsTotal,
-          deliveryCharge,
-          taxes,
-          totalAmount,
-          estimatedArrivalAt,
-          h3Index,
-          deliveryAddress:
-            dto.type === OrderType.DELIVERY && dto.deliveryAddress
+      const taxes = new Prisma.Decimal(0);
+      let deliveryCharge = new Prisma.Decimal(0);
+
+      if (dto.type === OrderType.DELIVERY) {
+        this.logger.debug(`📍 Calculating delivery fee for delivery order`);
+        const feeData = await this.cartService.getDeliveryFee(userId, {
+          latitude: dto.deliveryAddress.latitude,
+          longitude: dto.deliveryAddress.longitude,
+        });
+
+        deliveryCharge = new Prisma.Decimal(feeData.deliveryFee.toString());
+        this.logger.log(
+          `💰 Delivery fee calculated: ${deliveryCharge.toString()} for user: ${userId}`,
+        );
+      }
+
+      const totalAmount = itemsTotal.add(taxes).add(deliveryCharge);
+      this.logger.log(
+        `💳 Order total: Items=${itemsTotal.toString()}, Delivery=${deliveryCharge.toString()}, Total=${totalAmount.toString()}`,
+      );
+
+      const scheduledAt =
+        dto.deliveryTiming === DeliveryTiming.SCHEDULED
+          ? dto.scheduledAt
+          : null;
+
+      const estimatedArrivalAt =
+        dto.type === OrderType.DELIVERY
+          ? new Date(Date.now() + ETA_MINUTES * 60 * 1000)
+          : null;
+
+      let h3Index: string | undefined;
+      if (dto.type === OrderType.DELIVERY && dto.deliveryAddress) {
+        const lat = dto.deliveryAddress.latitude;
+        const lng = dto.deliveryAddress.longitude;
+        if (lat != null && lng != null) {
+          h3Index = H3IndexUtil.encodeH3(lat, lng);
+          this.logger.debug(`📍 H3 Index encoded: ${h3Index}`);
+        }
+      }
+
+      const order = await this.prisma.$transaction(async (tx) => {
+        let orderNumber = generateOrderNumber();
+        for (let attempt = 0; attempt < 24; attempt++) {
+          const clash = await tx.order.findUnique({
+            where: { orderNumber },
+            select: { id: true },
+          });
+          if (!clash) break;
+          if (attempt === 23) {
+            this.logger.error(
+              `❌ Could not allocate unique order number after 24 attempts`,
+            );
+            throw new BadRequestException('Could not allocate order number');
+          }
+          orderNumber = generateOrderNumber();
+        }
+
+        this.logger.debug(`🔢 Order number generated: ${orderNumber}`);
+
+        const confirmationCode = randomConfirmationCode();
+
+        const created = await tx.order.create({
+          data: {
+            userId,
+            orderNumber,
+            confirmationCode,
+            type: dto.type,
+            paymentMethod: dto.paymentMethod,
+            paymentStatus: PaymentStatus.UNPAID,
+            deliveryTiming: dto.deliveryTiming,
+            scheduledAt,
+            itemsTotal,
+            deliveryCharge,
+            taxes,
+            totalAmount,
+            estimatedArrivalAt,
+            h3Index,
+            deliveryAddress:
+              dto.type === OrderType.DELIVERY && dto.deliveryAddress
+                ? {
+                    create: {
+                      locationLabel: dto.deliveryAddress.locationLabel ?? null,
+                      name: dto.deliveryAddress.name,
+                      phoneNumber: dto.deliveryAddress.phoneNumber,
+                      address: dto.deliveryAddress.address,
+                      buildingDetail:
+                        dto.deliveryAddress.buildingDetail ?? null,
+                      latitude: dto.deliveryAddress.latitude ?? null,
+                      longitude: dto.deliveryAddress.longitude ?? null,
+                    },
+                  }
+                : undefined,
+            billingAddress: dto.billing
               ? {
                   create: {
-                    locationLabel: dto.deliveryAddress.locationLabel ?? null,
-                    name: dto.deliveryAddress.name,
-                    phoneNumber: dto.deliveryAddress.phoneNumber,
-                    address: dto.deliveryAddress.address,
-                    buildingDetail: dto.deliveryAddress.buildingDetail ?? null,
-                    latitude: dto.deliveryAddress.latitude ?? null,
-                    longitude: dto.deliveryAddress.longitude ?? null,
+                    country: dto.billing.country,
+                    addressLine1: dto.billing.addressLine1,
+                    addressLine2: dto.billing.addressLine2 ?? null,
+                    suburb: dto.billing.suburb,
+                    city: dto.billing.city,
+                    postalCode: dto.billing.postalCode,
+                    state: dto.billing.state,
                   },
                 }
               : undefined,
-          billingAddress: dto.billing
-            ? {
-                create: {
-                  country: dto.billing.country,
-                  addressLine1: dto.billing.addressLine1,
-                  addressLine2: dto.billing.addressLine2 ?? null,
-                  suburb: dto.billing.suburb,
-                  city: dto.billing.city,
-                  postalCode: dto.billing.postalCode,
-                  state: dto.billing.state,
-                },
-              }
-            : undefined,
-          items: {
-            create: cart.items.map((line) => {
-              const unit = computeUnitPrice(line);
-              const totalPrice = unit.mul(line.quantity);
-              const side = line.selectedSideOption!;
-              return {
-                itemId: line.itemId,
-                itemName: line.item.name,
-                imageUrl: line.item.imageUrl,
-                quantity: line.quantity,
-                customNote: line.customNote,
-                sizeName: line.selectedSizeVariant?.size ?? null,
-                sideOptionName: side.name,
-                sizePrice: line.sizePrice,
-                sidePrice: line.sidePrice,
-                unitPrice: unit,
-                totalPrice,
-                extras: {
-                  create: line.selectedExtras.map((e) => ({
-                    extraName: e.extraName,
-                    price: new Prisma.Decimal(e.price.toString()),
-                  })),
-                },
-              };
-            }),
+            items: {
+              create: cart.items.map((line) => {
+                const unit = computeUnitPrice(line);
+                const totalPrice = unit.mul(line.quantity);
+                const side = line.selectedSideOption!;
+                return {
+                  itemId: line.itemId,
+                  itemName: line.item.name,
+                  imageUrl: line.item.imageUrl,
+                  quantity: line.quantity,
+                  customNote: line.customNote,
+                  sizeName: line.selectedSizeVariant?.size ?? null,
+                  sideOptionName: side.name,
+                  sizePrice: line.sizePrice,
+                  sidePrice: line.sidePrice,
+                  unitPrice: unit,
+                  totalPrice,
+                  extras: {
+                    create: line.selectedExtras.map((e) => ({
+                      extraName: e.extraName,
+                      price: new Prisma.Decimal(e.price.toString()),
+                    })),
+                  },
+                };
+              }),
+            },
           },
-        },
-        include: orderDetailInclude,
+          include: orderDetailInclude,
+        });
+
+        await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+        return created;
       });
 
-      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
-
-      return created;
-    });
-
-    return order;
+      return order;
+    } catch (error) {
+      this.logger.error(`❌ Order placement failed for user: ${userId}`, error);
+      throw error;
+    }
   }
 
   async listActive(userId: string) {
