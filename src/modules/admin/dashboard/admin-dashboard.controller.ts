@@ -23,7 +23,11 @@ import { Pagination } from '@/common/types/pagination';
 import { QueryRiderDto } from './dto/query-rider.dto';
 import { ApproveNidDto, DeclineNidDto } from './dto/nid-action.dto';
 import type { Response as ExpressResponse } from 'express';
-import { CacheKey, CacheTTL } from '@/common/decorators/cache.decorator';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 @ApiTags('Admin — Dashboard')
 @ApiBearerAuth()
@@ -97,6 +101,7 @@ export class AdminDashboardController {
   }
 
   @Post('riders/nid/approve')
+  @InvalidateCache('admin:riders:all:*')
   @HttpCode(200)
   @ApiOperation({ summary: 'Approve rider NID' })
   @ApiOkResponse({
@@ -112,6 +117,7 @@ export class AdminDashboardController {
   }
 
   @Post('riders/nid/decline')
+  @InvalidateCache('admin:riders:all:*')
   @HttpCode(200)
   @ApiOperation({ summary: 'Decline rider NID' })
   @ApiOkResponse({
