@@ -19,6 +19,11 @@ import { CreateAdsDto, createAdsSchema } from './dto/create-ads.dto';
 import { UpdateAdsDto, updateAdsSchema } from './dto/update-ads.dto';
 import { JwtGuard, RolesGuard } from '@/common/guards';
 import { Roles } from '@/common/decorators';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 const AdsMediaUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -39,6 +44,7 @@ export class AdsController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(AdsMediaUploadInterceptor)
+  @InvalidateCache('ads:all')
   async createAds(
     @UploadedFiles() files: { media?: Express.Multer.File[] },
     @Body() body: any,
@@ -71,6 +77,8 @@ export class AdsController {
   }
 
   @Get()
+  @CacheKey('ads:all')
+  @CacheTTL(120)
   async getAds() {
     const ads = await this.adsService.getAds();
     return {
@@ -80,6 +88,8 @@ export class AdsController {
   }
 
   @Get(':id')
+  @CacheKey('ads:single::params.id')
+  @CacheTTL(120)
   async getAdsById(@Param('id') adsId: string) {
     const ads = await this.adsService.getAdsById(adsId);
     return {
@@ -90,6 +100,7 @@ export class AdsController {
 
   @Post(':id/click')
   @HttpCode(204)
+  // @InvalidateCache('ads:single::params.id')
   async trackClick(@Param('id') adsId: string) {
     await this.adsService.trackClick(adsId);
   }
@@ -98,6 +109,7 @@ export class AdsController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(AdsMediaUploadInterceptor)
+  @InvalidateCache('ads:all', 'ads:single::params.id')
   async updateAds(
     @Param('id') adsId: string,
     @UploadedFiles() files: { media?: Express.Multer.File[] },
@@ -128,6 +140,7 @@ export class AdsController {
   @Delete(':id')
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
+  @InvalidateCache('ads:all', 'ads:single::params.id')
   async deleteAds(@Param('id') adsId: string) {
     const deletedAds = await this.adsService.deleteAds(adsId);
 

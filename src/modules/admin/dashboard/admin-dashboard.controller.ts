@@ -13,6 +13,7 @@ import { QueryOrdersDto } from './dto/query-order.dto';
 import { Pagination } from '@/common/types/pagination';
 import { QueryRiderDto } from './dto/query-rider.dto';
 import type { Response as ExpressResponse } from 'express';
+import { CacheKey, CacheTTL } from '@/common/decorators/cache.decorator';
 
 @ApiTags('Admin — Dashboard')
 @ApiBearerAuth()
@@ -27,11 +28,15 @@ export class AdminDashboardController {
   @ApiOkResponse({
     description: 'Stats, weekly revenue, categories, recent orders, top items',
   })
+  @CacheKey('admin:dashboard:summary')
+  @CacheTTL(300)
   getSummary() {
     return this.adminDashboardService.getSummary();
   }
 
   @Get('orders')
+  @CacheKey('admin:orders:all')
+  @CacheTTL(120)
   async getAllOrders(@Query() dto: QueryOrdersDto) {
     const [orders, total] = await this.adminDashboardService.getAllOrders(dto);
 
@@ -48,6 +53,8 @@ export class AdminDashboardController {
   }
 
   @Get('riders')
+  @CacheKey('admin:riders:all')
+  @CacheTTL(120)
   async getAllRiders(@Query() dto: QueryRiderDto) {
     const [riders, total] = await this.adminDashboardService.getAllRiders(dto);
 

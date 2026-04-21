@@ -10,6 +10,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 import { TagService } from './tag.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import {
@@ -26,6 +31,8 @@ export class TagController {
 
   @Get()
   @ApiGetTags()
+  @CacheKey('tags:all')
+  @CacheTTL(300)
   findAll() {
     return this.tagService.findAll();
   }
@@ -33,12 +40,14 @@ export class TagController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateTag()
+  @InvalidateCache('tags:all')
   create(@Body() dto: CreateTagDto) {
     return this.tagService.create(dto);
   }
 
   @Patch(':id')
   @ApiUpdateTag()
+  @InvalidateCache('tags:all')
   update(@Param('id') id: string, @Body() dto: CreateTagDto) {
     return this.tagService.update(id, dto);
   }
@@ -46,6 +55,7 @@ export class TagController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteTag()
+  @InvalidateCache('tags:all')
   remove(@Param('id') id: string) {
     return this.tagService.remove(id);
   }

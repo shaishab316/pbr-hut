@@ -19,6 +19,11 @@ import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.
 import type { SafeUser } from '@/common/types/safe-user.type';
 import { UpdateRiderLocationDto } from './dto/update-rider-location.dto';
 import { ApiUpdateRiderLocation, ApiUploadNid } from './docs/rider.docs';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 const NidUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -39,6 +44,8 @@ export class RiderController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.RIDER)
   @HttpCode(HttpStatus.OK)
+  @CacheKey('rider:home:overview::user.id')
+  @CacheTTL(60)
   getHomeOverview(@CurrentUser('id') userId: string) {
     return this.riderService.getHomeOverview(userId);
   }
@@ -48,6 +55,10 @@ export class RiderController {
   @Roles(UserRole.RIDER)
   @Patch('location')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache(
+    'rider:home:overview::user.id',
+    'rider:earning:overview::user.id',
+  )
   updateLocation(
     @CurrentUser('id') userId: string,
     @Body() dto: UpdateRiderLocationDto,
@@ -59,6 +70,8 @@ export class RiderController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.RIDER)
   @HttpCode(HttpStatus.OK)
+  @CacheKey('rider:earning:overview::user.id')
+  @CacheTTL(60)
   getEarningOverview(@CurrentUser('id') userId: string) {
     return this.riderService.getEarningOverview(userId);
   }
@@ -66,6 +79,7 @@ export class RiderController {
   @ApiUploadNid()
   @Post('nid')
   @UseInterceptors(NidUploadInterceptor)
+  @InvalidateCache('rider:*')
   uploadNid(
     @CurrentUser() user: SafeUser,
     @UploadedFiles()

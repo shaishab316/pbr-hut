@@ -26,6 +26,11 @@ import {
   ApiReorder,
 } from './docs';
 import { Pagination } from '@/common/types/pagination';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 @ApiTags('Orders')
 @UseGuards(JwtGuard)
@@ -36,6 +41,7 @@ export class OrderController {
   @ApiCreateOrder()
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @InvalidateCache('orders:active::user.id')
   async placeOrder(
     @CurrentUser('id') userId: string,
     @Body() dto: CreateOrderDto,
@@ -53,6 +59,8 @@ export class OrderController {
 
   @ApiListActiveOrders()
   @Get('active')
+  @CacheKey('orders:active::user.id')
+  @CacheTTL(60)
   async listActive(@CurrentUser('id') userId: string) {
     const orders = await this.orderService.listActive(userId);
     return { message: 'Active orders retrieved successfully', data: orders };
@@ -60,6 +68,8 @@ export class OrderController {
 
   @ApiListOrderHistory()
   @Get('history')
+  @CacheKey('orders:history::user.id')
+  @CacheTTL(120)
   async listHistory(
     @CurrentUser('id') userId: string,
     @Query() query: QueryOrderHistoryDto,
@@ -85,6 +95,8 @@ export class OrderController {
 
   @ApiGetOrder()
   @Get(':orderId')
+  @CacheKey('orders:single::params.orderId')
+  @CacheTTL(120)
   getById(
     @CurrentUser('id') userId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -95,6 +107,11 @@ export class OrderController {
   @ApiCancelOrder()
   @Post(':orderId/cancel')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache(
+    'orders:active::user.id',
+    'orders:history::user.id',
+    'orders:single::params.orderId',
+  )
   cancel(
     @CurrentUser('id') userId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -105,6 +122,7 @@ export class OrderController {
   @ApiReorder()
   @Post(':orderId/reorder')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache('orders:active::user.id', 'orders:single::params.orderId')
   reorder(
     @CurrentUser('id') userId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -114,6 +132,7 @@ export class OrderController {
 
   @Post(':orderId/mark-as-paid')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache('orders:single::params.orderId')
   async markAsPaid(@Param('orderId', ParseUUIDPipe) orderId: string) {
     const order = await this.orderService.markAsPaid(orderId);
     return {
@@ -124,6 +143,7 @@ export class OrderController {
 
   @Post(':orderId/mark-as-unpaid')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache('orders:single::params.orderId')
   async markAsUnpaid(@Param('orderId', ParseUUIDPipe) orderId: string) {
     const order = await this.orderService.markAsUnpaid(orderId);
     return {
@@ -134,6 +154,7 @@ export class OrderController {
 
   @Post(':orderId/update-payment-status')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache('orders:single::params.orderId')
   async updatePaymentStatus(
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Body() dto: UpdatePaymentStatusDto,

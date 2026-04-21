@@ -28,6 +28,11 @@ import {
   ApiRiderOrderHistory,
   ApiRiderAddTime,
 } from './docs/rider-orders.docs';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 @ApiTags('Rider · Orders')
 @UseGuards(JwtGuard, RolesGuard)
@@ -38,6 +43,8 @@ export class RiderOrderController {
 
   @ApiRiderNearbyRequests()
   @Get('nearby-requests')
+  @CacheKey('rider-orders:nearby::user.id')
+  @CacheTTL(30)
   listNearby(
     @CurrentUser('id') riderId: string,
     @Query() query: NearbyRiderOrdersDto,
@@ -47,12 +54,16 @@ export class RiderOrderController {
 
   @ApiRiderListAssigned()
   @Get('assigned')
+  @CacheKey('rider-orders:assigned::user.id')
+  @CacheTTL(30)
   listAssigned(@CurrentUser('id') riderId: string) {
     return this.riderOrderService.listAssignedActive(riderId);
   }
 
   @ApiRiderOrderHistory()
   @Get('history')
+  @CacheKey('rider-orders:history::user.id')
+  @CacheTTL(120)
   async listHistory(
     @CurrentUser('id') riderId: string,
     @Query() query: QueryOrderHistoryDto,
@@ -77,6 +88,8 @@ export class RiderOrderController {
 
   @ApiRiderGetOrder()
   @Get(':orderId')
+  @CacheKey('rider-orders:single::params.orderId')
+  @CacheTTL(60)
   getOne(
     @CurrentUser('id') riderId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -87,6 +100,11 @@ export class RiderOrderController {
   @ApiRiderAcceptOrder()
   @Post(':orderId/accept')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache(
+    'rider-orders:assigned::user.id',
+    'rider-orders:nearby::user.id',
+    'rider-orders:single::params.orderId',
+  )
   accept(
     @CurrentUser('id') riderId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -97,6 +115,11 @@ export class RiderOrderController {
   @ApiRiderDeliverOrder()
   @Post(':orderId/deliver')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache(
+    'rider-orders:assigned::user.id',
+    'rider-orders:history::user.id',
+    'rider-orders:single::params.orderId',
+  )
   deliver(
     @CurrentUser('id') riderId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
@@ -108,6 +131,7 @@ export class RiderOrderController {
   @ApiRiderAddTime()
   @Post(':orderId/add-time')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache('rider-orders:single::params.orderId')
   addTime(
     @CurrentUser('id') riderId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,

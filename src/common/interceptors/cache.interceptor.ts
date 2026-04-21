@@ -3,6 +3,7 @@ import {
   CallHandler,
   ExecutionContext,
   Injectable,
+  Logger,
   NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -42,13 +43,9 @@ export class CacheInterceptor implements NestInterceptor {
       return next.handle().pipe(
         mergeMap(async (data) => {
           const resolvedKeys = invalidateKeys.map((key) =>
-            key.replace(/:(\w+\.\w+)/g, (_, path) => {
-              const [source, field] = path.split('.');
-              if (source === 'params') return req.params[field] ?? key;
-              if (source === 'body') return req.body[field] ?? key;
-              return key;
-            }),
+            resolvedCacheKeyFromTemplate(key, req),
           );
+
           await Promise.all(
             resolvedKeys.map((key) =>
               this.redis.deleteByPattern(({ RESPONSE }) => RESPONSE(key)),
@@ -65,9 +62,11 @@ export class CacheInterceptor implements NestInterceptor {
     );
     if (!cacheKey) return next.handle();
 
-    const resolvedCacheKey = sortedQuery
-      ? `${cacheKey}:${sortedQuery}`
-      : cacheKey;
+    let resolvedCacheKey = resolvedCacheKeyFromTemplate(cacheKey, req);
+
+    resolvedCacheKey = sortedQuery
+      ? `${resolvedCacheKey}:${sortedQuery}`
+      : resolvedCacheKey;
 
     const ttl =
       this.reflector.get<number>(CACHE_TTL_METADATA, context.getHandler()) ??
@@ -102,4 +101,31 @@ export class CacheInterceptor implements NestInterceptor {
       }),
     );
   }
+}
+
+export function resolvedCacheKeyFromTemplate(
+  template: string,
+  req: any,
+): string {
+  return template.replace(/:(\w+\.\w+)/g, (_, path) => {
+    try {
+      const [source, field] = path.split('.');
+      if (source === 'params') return req.params?.[field] ?? path;
+      if (source === 'body') return req.body?.[field] ?? path;
+      if (source === 'user') return req.user?.[field] ?? path;
+
+      /**
+       * add more sources if needed, e.g. headers, cookies, etc.
+       */
+
+      return path;
+    } catch (error) {
+      Logger.error(
+        'Error occurred while resolving cache key',
+        error,
+        'resolvedCacheKeyFromTemplate',
+      );
+      return path;
+    }
+  });
 }

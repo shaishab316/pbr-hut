@@ -25,6 +25,11 @@ import {
   ApiUpdateCartItem,
 } from './docs';
 import { DeliveryFeeDto } from './dto/delivery-fee.dto';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 @ApiTags('Cart')
 @UseGuards(JwtGuard)
@@ -34,6 +39,8 @@ export class CartController {
 
   @ApiGetCart()
   @Get()
+  @CacheKey('cart:user::user.id')
+  @CacheTTL(60)
   async getCart(@CurrentUser('id') userId: string) {
     const cart = await this.cartService.getCart(userId);
 
@@ -66,12 +73,14 @@ export class CartController {
   @ApiAddCartItem()
   @Post('items')
   @HttpCode(HttpStatus.CREATED)
+  @InvalidateCache('cart:user::user.id')
   addItem(@CurrentUser('id') userId: string, @Body() dto: AddCartItemDto) {
     return this.cartService.addItem(userId, dto);
   }
 
   @ApiUpdateCartItem()
   @Patch('items/:cartItemId')
+  @InvalidateCache('cart:user::user.id')
   updateItem(
     @CurrentUser('id') userId: string,
     @Param('cartItemId', ParseUUIDPipe) cartItemId: string,
@@ -83,6 +92,7 @@ export class CartController {
   @ApiRemoveCartItem()
   @Delete('items/:cartItemId')
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache('cart:user::user.id')
   removeItem(
     @CurrentUser('id') userId: string,
     @Param('cartItemId', ParseUUIDPipe) cartItemId: string,
@@ -93,6 +103,7 @@ export class CartController {
   @ApiClearCart()
   @Delete()
   @HttpCode(HttpStatus.OK)
+  @InvalidateCache('cart:user::user.id')
   clearCart(@CurrentUser('id') userId: string) {
     return this.cartService.clearCart(userId);
   }

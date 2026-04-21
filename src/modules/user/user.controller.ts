@@ -20,6 +20,11 @@ import {
 import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
 import { safeJsonParse } from '@/common/utils/safeJsonParse';
 import { ZodValidationException } from 'nestjs-zod';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 const ProfilePictureUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -39,6 +44,8 @@ export class UserController {
 
   @ApiGetMe()
   @Get('me')
+  @CacheKey('user:me::user.id')
+  @CacheTTL(300)
   async getMe(@CurrentUser('id') userId: string) {
     const user = await this.userService.getMe(userId);
 
@@ -49,6 +56,7 @@ export class UserController {
   }
 
   @Post('change-password')
+  @InvalidateCache('user:me::user.id')
   async changePassword(
     @CurrentUser('id') userId: string,
     @Body() dto: ChangePasswordDto,
@@ -62,6 +70,7 @@ export class UserController {
 
   @Patch('update-profile')
   @UseInterceptors(ProfilePictureUploadInterceptor)
+  @InvalidateCache('user:me::user.id')
   async updateProfile(
     @CurrentUser('id') userId: string,
     @UploadedFiles() files: { profilePicture?: Express.Multer.File[] },

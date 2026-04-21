@@ -29,7 +29,7 @@ import {
 import { QueryItemsDto } from './dto/query-items.dto';
 import { safeJsonParse } from '@/common/utils/safeJsonParse';
 import { JwtGuard, RolesGuard } from '@/common/guards';
-import { Roles } from '@/common/decorators';
+import { CurrentUser, Roles } from '@/common/decorators';
 import { UserRole } from '@prisma/client';
 import { Pagination } from '@/common/types/pagination';
 import {
@@ -79,6 +79,8 @@ export class ItemController {
 
   @Get('popular')
   @ApiGetItems()
+  @CacheKey('items:popular')
+  @CacheTTL(120)
   async popularItems(@Query() query: QueryItemsDto) {
     const { items, total } = await this.itemService.findMany(query);
 
@@ -98,7 +100,13 @@ export class ItemController {
 
   @Get('you-may-like')
   @ApiGetItems()
-  async youMayLike(@Query() query: QueryItemsDto) {
+  @CacheKey('items:you-may-like::user.id')
+  @CacheTTL(120)
+  async youMayLike(
+    @Query() query: QueryItemsDto,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    @CurrentUser('id') userId: string, // not implemented in service yet, but can be used to personalize recommendations
+  ) {
     const { items, total } = await this.itemService.findMany(query);
 
     return {
@@ -116,6 +124,8 @@ export class ItemController {
   }
 
   @Get('hot-search-terms')
+  // @CacheKey('items:hot-search-terms') // already use redis cache
+  // @CacheTTL(300)
   async hotSearchTerms() {
     const terms = await this.itemService.getHotSearchTerms();
 
@@ -126,6 +136,8 @@ export class ItemController {
   }
 
   @Get(':id')
+  @CacheKey('items:single::params.id')
+  @CacheTTL(120)
   async findById(@Param('id', ParseUUIDPipe) id: string) {
     const item = await this.itemService.findById(id);
 
@@ -143,7 +155,12 @@ export class ItemController {
   @UseInterceptors(ItemUploadInterceptor)
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @InvalidateCache('items:all*')
+  @InvalidateCache(
+    'items:all',
+    'items:popular',
+    'items:you-may-like',
+    // 'items:hot-search-terms', // it come when /item?search=xxx, so no need to invalidate when create/update item
+  )
   async create(
     @UploadedFiles() files: { image?: Express.Multer.File[] },
     @Body() body: any,
@@ -166,6 +183,12 @@ export class ItemController {
   @UseInterceptors(ItemUploadInterceptor)
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @InvalidateCache(
+    'items:all',
+    'items:popular',
+    'items:you-may-like',
+    'items:single::params.id',
+  )
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFiles() files: { image?: Express.Multer.File[] },
@@ -185,6 +208,12 @@ export class ItemController {
   @ApiDeleteItem()
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @InvalidateCache(
+    'items:all',
+    'items:popular',
+    'items:you-may-like',
+    'items:single::params.id',
+  )
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.itemService.softDelete(id);
   }
