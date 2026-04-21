@@ -25,13 +25,15 @@ export default defineConfig({
 
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Architecture', link: '/architecture' },
+      { text: 'Getting Started', link: '/quick-start' },
+      { text: 'Architecture', link: '/architecture-overview' },
       {
-        text: 'Auth',
+        text: 'Guides',
         items: [
-          { text: 'Auth module', link: '/auth/auth' },
-          { text: 'Forgot password', link: '/auth/forgot-password' },
-          { text: 'OTP module', link: '/otp/otp' },
+          { text: 'Auth & Security', link: '/jwt-authentication-flow' },
+          { text: 'Data & Database', link: '/multi-file-prisma-schema-design' },
+          { text: 'Business Logic', link: '/order-checkout-pipeline' },
+          { text: 'Infrastructure', link: '/redis-caching-layer' },
         ],
       },
     ],
@@ -39,24 +41,88 @@ export default defineConfig({
     sidebar: [
       {
         text: 'Overview',
-        items: [{ text: 'Architecture', link: '/architecture' }],
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/overview' },
+          { text: 'Quick Start', link: '/quick-start' },
+          { text: 'Project Structure', link: '/project-structure-guide' },
+        ],
       },
       {
-        text: 'Auth',
+        text: 'Architecture & Design',
+        collapsed: false,
+        items: [
+          { text: 'Architecture Overview', link: '/architecture-overview' },
+          { text: 'API Conventions', link: '/api-conventions-and-standards' },
+          { text: 'Repository Pattern', link: '/repository-pattern' },
+        ],
+      },
+      {
+        text: 'Authentication & Security',
+        collapsed: false,
+        items: [
+          { text: 'JWT Authentication', link: '/jwt-authentication-flow' },
+          {
+            text: 'Role-Based Access Control',
+            link: '/role-based-access-control',
+          },
+          { text: 'OTP Verification', link: '/otp-verification-system' },
+          {
+            text: 'Contact Strategy Pattern',
+            link: '/contact-strategy-pattern',
+          },
+        ],
+      },
+      {
+        text: 'Data & Persistence',
         collapsed: false,
         items: [
           {
-            text: 'Auth module',
-            link: '/auth/auth',
-            items: [
-              {
-                text: 'auth.cache.repository',
-                link: '/auth/repositories/auth.cache.repository',
-              },
-            ],
+            text: 'Multi-File Prisma Schema',
+            link: '/multi-file-prisma-schema-design',
           },
-          { text: 'Forgot password', link: '/auth/forgot-password' },
-          { text: 'OTP module', link: '/otp/otp' },
+          {
+            text: 'Prisma Service & Pool',
+            link: '/prisma-service-with-pg-pool',
+          },
+        ],
+      },
+      {
+        text: 'Business Logic',
+        collapsed: false,
+        items: [
+          { text: 'Menu & Items', link: '/menu-and-item-management' },
+          { text: 'Cart System', link: '/cart-system-with-variants' },
+          { text: 'Order Checkout', link: '/order-checkout-pipeline' },
+          {
+            text: 'Rider Dispatch & H3',
+            link: '/rider-dispatch-and-h3-geospatial',
+          },
+        ],
+      },
+      {
+        text: 'Infrastructure & DevOps',
+        collapsed: false,
+        items: [
+          { text: 'Redis Caching', link: '/redis-caching-layer' },
+          { text: 'BullMQ Mail Queue', link: '/bullmq-mail-queue' },
+          { text: 'Cloudinary Uploads', link: '/cloudinary-file-uploads' },
+          {
+            text: 'Global Response Interceptor',
+            link: '/global-response-interceptor',
+          },
+          {
+            text: 'Environment Configuration',
+            link: '/environment-config-with-zod',
+          },
+        ],
+      },
+      {
+        text: 'Monitoring & Documentation',
+        collapsed: false,
+        items: [
+          { text: 'Admin Analytics', link: '/admin-dashboard-analytics' },
+          { text: 'API Documentation', link: '/api-documentation-with-scalar' },
         ],
       },
     ],
