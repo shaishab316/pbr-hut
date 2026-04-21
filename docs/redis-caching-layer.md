@@ -2,157 +2,160 @@
 
 Redis provides fast, in-memory caching for frequently accessed data, reducing database load and improving response times.
 
-## Cache Keys
+## Current Setup
+
+The caching layer uses a **decorator-based approach** with automatic cache interceptor handling:
+
+- `@CacheKey(key)` - Defines the cache key template
+- `@CacheTTL(seconds)` - Sets the time-to-live for cached data
+- `@InvalidateCache(...keys)` - Invalidates cache keys after request execution
+- `CacheInterceptor` - Handles cache logic automatically
+
+## Cache Key Templates
+
+Cache keys support dynamic template resolution using the format `:source.field`:
 
 ```
-menu:categories                 # All categories
-menu:items:{restaurantId}      # Restaurant's items
-restaurant:{id}                 # Restaurant metadata
-user:profile:{userId}          # User profile
-order:{orderId}                 # Order details
+user:me::user.id           # Resolves to: user:me::{userId}
+order::params.id           # Resolves to: order::{orderId}
+restaurant::body.id        # Resolves to: restaurant::{restaurantId}
+menu:items::params.restaurantId  # Resolves to: menu:items::{restaurantId}
 ```
 
-## TTLs
+### Supported Sources
 
-| Data | TTL | Reason |
-|------|-----|--------|
-| Menu items | 30 min | Changes infrequently |
-| Categories | 1 hour | Rarely changes |
-| Restaurant | 2 hours | Update when admin changes |
-| User profile | 5 min | Fresh per session |
+| Source | Description | Example |
+|--------|-------------|---------|
+| `user.*` | Current authenticated user | `user.id`, `user.email` |
+| `params.*` | URL parameters | `params.id`, `params.restaurantId` |
+| `body.*` | Request body fields | `body.userId`, `body.orderId` |
 
-## Implementation
+## Implementation Example
+
+```typescript
+@Get('me')
+@CacheKey('user:me::user.id')
+@CacheTTL(300)  // 5 minutes
+async getMe(@CurrentUser('id') userId: string) {
+  const user = await this.userService.getMe(userId);
+  return {
+    message: `Welcome back, ${user.name}!`,
+    data: user,
+  };
+}
+
+@Patch('update-profile')
+@UseInterceptors(ProfilePictureUploadInterceptor)
+@InvalidateCache('user:me::user.id')  // Invalidate on write
+async updateProfile(
+  @CurrentUser('id') userId: string,
+  @UploadedFiles() files: any,
+  @Body() body: any,
+) {
+  // ... update logic
+  return updatedUser;
+}
+```
+
+## Cache Interceptor
+
+The `CacheInterceptor` automatically handles:
+
+1. **Cache Retrieval** - Checks cache before executing handler
+2. **Cache Storage** - Stores response in cache after execution
+3. **Cache Invalidation** - Deletes cache keys by pattern after mutation
+4. **Query Parameters** - Appends sorted query params to cache key
+5. **Response Headers** - Sets `X-Cache: HIT/MISS` headers
 
 ```typescript
 @Injectable()
-export class RedisService {
-  constructor(private redis: Redis) {}
-
-  async get(key: string): Promise<string | null> {
-    return this.redis.get(key);
-  }
-
-  async set(key: string, value: string, ttl?: number): Promise<void> {
-    if (ttl) {
-      await this.redis.setex(key, ttl, value);
-    } else {
-      await this.redis.set(key, value);
-    }
-  }
-
-  async delete(key: string): Promise<void> {
-    await this.redis.del(key);
-  }
-
-  async increment(key: string): Promise<number> {
-    return this.redis.incr(key);
+export class CacheInterceptor implements NestInterceptor {
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Promise<Observable<any>> {
+    // 1. Check for invalidation metadata
+    // 2. Check for cache key metadata
+    // 3. Resolve cache key from template
+    // 4. Append sorted query parameters
+    // 5. Retrieve from cache (return if HIT)
+    // 6. Execute handler on MISS
+    // 7. Store response in cache
+    // 8. Return response
   }
 }
 ```
 
-## Caching Strategy
+## Usage Patterns
+
+### Read Operations (GET)
 
 ```typescript
 @Get('items/:id')
-@UseGuards(JwtGuard)
-async getItem(@Param('id') id: string): Promise<Item> {
-  const cacheKey = `menu:items:${id}`;
-  
-  // Check cache
-  const cached = await this.redisService.get(cacheKey);
-  if (cached) {
-    return JSON.parse(cached);
-  }
-
-  // Cache miss - query database
-  const item = await this.itemRepository.findById(id);
-  
-  // Store in cache
-  await this.redisService.set(
-    cacheKey,
-    JSON.stringify(item),
-    1800  // 30 minutes
-  );
-
-  return item;
+@CacheKey('menu:items::params.id')
+@CacheTTL(1800)  // 30 minutes
+async getItem(@Param('id') id: string) {
+  return this.itemService.findById(id);
 }
 ```
 
-## Cache Invalidation
+### Write Operations (POST, PATCH, PUT)
 
 ```typescript
 @Post('items')
-@UseGuards(JwtGuard, RolesGuard)
-@Roles('ADMIN')
+@InvalidateCache('menu:items', 'menu:categories')
 async createItem(@Body() dto: CreateItemDto) {
-  const item = await this.itemRepository.create(dto);
-
-  // Invalidate relevant caches
-  await this.redisService.delete(`menu:items:${dto.restaurantId}`);
-  await this.redisService.delete('menu:categories');
-
-  return item;
+  return this.itemService.create(dto);
 }
 ```
 
-## Patterns
-
-### Cache-Aside
+### Automatic Query Parameter Handling
 
 ```typescript
-// 1. Check cache
-// 2. If miss, query DB
-// 3. Update cache
-```
-
-### Write-Through
-
-```typescript
-// 1. Write to DB
-// 2. Update cache
-// 3. Return to client
-```
-
-### Cache Warming
-
-```typescript
-@Cron('0 * * * *')  // Every hour
-async warmMenuCache(): Promise<void> {
-  const restaurants = await this.restaurantRepository.findAll();
-  
-  for (const restaurant of restaurants) {
-    const items = await this.itemRepository.findByRestaurant(restaurant.id);
-    await this.redisService.set(
-      `menu:items:${restaurant.id}`,
-      JSON.stringify(items),
-      3600
-    );
-  }
+@Get('items')
+@CacheKey('menu:items')
+@CacheTTL(600)  // 10 minutes
+async getItems(@Query() filters: any) {
+  // Cache key automatically becomes:
+  // menu:items:filter=active&limit=10&sort=name
+  return this.itemService.search(filters);
 }
 ```
 
 ## Response Headers
 
+The interceptor automatically sets cache status headers:
+
 ```
-X-Cache: HIT           # From Redis
-X-Cache: MISS          # From DB
-X-Cache-TTL: 1800     # Seconds until expiration
+X-Cache: HIT           # Response served from cache
+X-Cache: MISS          # Response fetched from database
 ```
+
+## TTL Recommendations
+
+| Data Type | TTL | Reason |
+|-----------|-----|--------|
+| User profile | 300s (5min) | Frequent updates |
+| Menu items | 1800s (30min) | Changes infrequently |
+| Categories | 3600s (1hr) | Rarely changes |
+| Orders | 600s (10min) | Status updates |
+| Restaurant | 7200s (2hrs) | Admin updates only |
 
 ## Connection
 
 ```env
 REDIS_URL=redis://localhost:6379
-# or
-REDIS_URL=redis://:password@host:port
+# or with authentication
+REDIS_URL=redis://:password@host:port/db
 ```
 
 ## Best Practices
 
-1. **Short TTLs** - 30 min or less for menu
-2. **Invalidate aggressively** - Don't serve stale data
-3. **Use structured keys** - `resource:type:id`
-4. **Handle cache misses** - DB fallback
-5. **Monitor hits/misses** - Track cache effectiveness
-6. **Compress large values** - If > 1MB
-7. **Set max memory** - Prevent disk swaps
+1. **Use Template-Based Keys** - Always use `@CacheKey('resource:type::source.field')` format
+2. **Set Appropriate TTLs** - Lower TTLs for frequently changing data (user profile: 5min, items: 30min)
+3. **Invalidate on Write** - Use `@InvalidateCache()` on POST, PATCH, PUT operations
+4. **Batch Invalidations** - Invalidate related cache keys together: `@InvalidateCache('menu:items', 'menu:categories')`
+5. **Leverage Query Params** - Interceptor automatically includes sorted query params in cache key
+6. **Test Cache Headers** - Check `X-Cache: HIT/MISS` headers during development
+7. **Monitor Performance** - Log cache hits/misses using the built-in logger
+8. **Handle Errors Gracefully** - Interceptor catches Redis errors and falls back to database
