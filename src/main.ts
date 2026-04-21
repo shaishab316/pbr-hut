@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import chalk from 'chalk';
 import compression from 'compression';
 import { NextFunction, Request, Response } from 'express';
@@ -11,12 +11,9 @@ import { AppModule } from './app.module';
 import { setupApiDocs } from './common/config/api-docs.config';
 import type { Env } from './common/config/app.config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import {
-  WINSTON_MODULE_NEST_PROVIDER,
-  WINSTON_MODULE_PROVIDER,
-} from 'nest-winston';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { CacheInterceptor } from './common/interceptors/cache.interceptor';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -55,8 +52,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(app.get(CacheInterceptor));
 
   //? global exception filter
+  const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(
-    new GlobalExceptionFilter(app.get(WINSTON_MODULE_PROVIDER)),
+    new GlobalExceptionFilter({ httpAdapter } as HttpAdapterHost),
   );
 
   setupApiDocs(app);

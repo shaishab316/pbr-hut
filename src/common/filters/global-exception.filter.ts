@@ -1,68 +1,123 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpStatus,
-  Inject,
 } from '@nestjs/common';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
-import { Request, Response } from 'express';
-import {
-  IExceptionResolver,
-  ResolvedError,
-} from './exception-resolver.interface';
-import { PrismaExceptionResolver } from './resolvers/prisma-exception.resolver';
-import { HttpExceptionResolver } from './resolvers/http-exception.resolver';
-import { ZodExceptionResolver } from './resolvers/zod-exception.resolver';
-import { JwtExceptionResolver } from './resolvers/jwt-exception.resolver';
-import { MulterExceptionResolver } from './resolvers/multer-exception.resolver';
-import { StripeExceptionResolver } from './resolvers/stripe-exception.resolver';
+import { HttpAdapterHost } from '@nestjs/core';
+import { Prisma } from '@prisma/client';
+import { MulterError } from 'multer';
 
-@Catch()
+interface ErrorResponse {
+  statusCode: number;
+  error: string;
+  message: string;
+}
+
+@Catch(
+  Prisma.PrismaClientKnownRequestError,
+  Prisma.PrismaClientValidationError,
+  MulterError,
+)
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private resolvers: IExceptionResolver[] = [
-    new ZodExceptionResolver(),
-    new HttpExceptionResolver(),
-    new PrismaExceptionResolver(),
-    new JwtExceptionResolver(),
-    new MulterExceptionResolver(),
-    new StripeExceptionResolver(),
-  ];
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
-  constructor(@Inject(WINSTON_MODULE_PROVIDER) private logger: Logger) {}
-
-  catch(exception: unknown, host: ArgumentsHost) {
+  catch(
+    exception:
+      | Prisma.PrismaClientKnownRequestError
+      | Prisma.PrismaClientValidationError
+      | MulterError,
+    host: ArgumentsHost,
+  ): void {
+    const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
-    const req = ctx.getRequest<Request>();
-    const res = ctx.getResponse<Response>();
 
-    const { status, message, errors } = this.resolve(exception);
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string = 'Internal server error';
 
-    this.logger.error('Exception', {
-      status,
-      method: req.method,
-      url: req.originalUrl,
-      message,
-      stack: exception instanceof Error ? exception.stack : undefined,
-    });
+    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      ({ status, message } = this.resolvePrismaException(exception));
+    } else if (exception instanceof Prisma.PrismaClientValidationError) {
+      status = HttpStatus.BAD_REQUEST;
+      message = 'Validation error: invalid data provided';
+    } else if (exception instanceof MulterError) {
+      ({ status, message } = this.resolveMulterException(exception));
+    }
 
-    res.status(status).json({
+    const responseBody: ErrorResponse = {
       statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: req.originalUrl,
+      error: HttpStatus[status].replace(/_/g, ' '),
       message,
-      ...(errors ? { errors } : {}),
-    });
+    };
+
+    httpAdapter.reply(ctx.getResponse(), responseBody, status);
   }
 
-  private resolve(exception: unknown): ResolvedError {
-    const resolver = this.resolvers.find((r) => r.supports(exception));
-    return resolver
-      ? resolver.resolve(exception)
-      : {
-          status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Something went wrong',
+  private resolvePrismaException(
+    exception: Prisma.PrismaClientKnownRequestError,
+  ): {
+    status: number;
+    message: string;
+  } {
+    switch (exception.code) {
+      case 'P2002':
+        return {
+          status: HttpStatus.CONFLICT,
+          message: `Unique constraint failed on: ${(exception.meta?.target as string[])?.join(', ')}`,
         };
+      case 'P2025':
+        return {
+          status: HttpStatus.NOT_FOUND,
+          message: 'Record not found',
+        };
+      case 'P2003':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Foreign key constraint failed',
+        };
+      case 'P2014':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Relation violation: required relation missing',
+        };
+      default:
+        return {
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: `Database error: ${exception.code}`,
+        };
+    }
+  }
+
+  private resolveMulterException(exception: MulterError): {
+    status: number;
+    message: string;
+  } {
+    switch (exception.code) {
+      case 'LIMIT_FILE_SIZE':
+        return {
+          status: HttpStatus.PAYLOAD_TOO_LARGE,
+          message: 'File size exceeds the allowed limit',
+        };
+      case 'LIMIT_FILE_COUNT':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Too many files uploaded',
+        };
+      case 'LIMIT_UNEXPECTED_FILE':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: `Unexpected file field: ${exception.field}`,
+        };
+      case 'LIMIT_PART_COUNT':
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Too many parts in the request',
+        };
+      default:
+        return {
+          status: HttpStatus.BAD_REQUEST,
+          message: `File upload error: ${exception.message}`,
+        };
+    }
   }
 }
