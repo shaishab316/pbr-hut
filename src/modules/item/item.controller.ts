@@ -32,6 +32,11 @@ import { JwtGuard, RolesGuard } from '@/common/guards';
 import { Roles } from '@/common/decorators';
 import { UserRole } from '@prisma/client';
 import { Pagination } from '@/common/types/pagination';
+import {
+  CacheKey,
+  CacheTTL,
+  InvalidateCache,
+} from '@/common/decorators/cache.decorator';
 
 const ItemUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -53,6 +58,8 @@ export class ItemController {
 
   @Get()
   @ApiGetItems()
+  @CacheKey('items:all')
+  @CacheTTL(120)
   async findMany(@Query() query: QueryItemsDto) {
     const { items, total } = await this.itemService.findMany(query);
 
@@ -136,6 +143,7 @@ export class ItemController {
   @UseInterceptors(ItemUploadInterceptor)
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @InvalidateCache('items:all*')
   async create(
     @UploadedFiles() files: { image?: Express.Multer.File[] },
     @Body() body: any,

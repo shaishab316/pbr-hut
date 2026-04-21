@@ -51,7 +51,7 @@ export class CacheInterceptor implements NestInterceptor {
           );
           await Promise.all(
             resolvedKeys.map((key) =>
-              this.redis.del(({ RESPONSE }) => RESPONSE(key)),
+              this.redis.deleteByPattern(({ RESPONSE }) => RESPONSE(key)),
             ),
           );
           return data;

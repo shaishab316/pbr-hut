@@ -96,11 +96,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return (await this.client.exists(keyFn(CACHE_KEY))) > 0;
   }
 
-  async deleteByPattern(pattern: string): Promise<number> {
+  async deleteByPattern(keyFn: (ctx: Ctx) => string): Promise<number> {
     let deletedCount = 0;
 
     const stream = this.client.scanStream({
-      match: pattern,
+      match: keyFn(CACHE_KEY),
       count: 100, // Fetch keys in chunks of 100
     });
 
