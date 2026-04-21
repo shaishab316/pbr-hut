@@ -19,13 +19,6 @@ export class ResponseInterceptor implements NestInterceptor {
   private buildResponse(data: any, res: Response) {
     const statusCode = res.statusCode;
 
-    // Handle cache header
-    if (data?.__cache) {
-      const { __cache, ...rest } = data;
-      res.setHeader('X-Cache', __cache);
-      data = rest;
-    }
-
     // Build response object
     const response: any = {
       success: true,

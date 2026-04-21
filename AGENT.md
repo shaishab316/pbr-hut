@@ -92,9 +92,8 @@ docs/                     # human docs (architecture, auth flows, …)
 
 1. **Validation:** Global `**ZodValidationPipe`** (`nestjs-zod`). DTOs = Zod schema + `createZodDto(...)`. Export `z.infer<typeof Schema>` as `*Input` types for services.
 2. **Responses:** Global `**ResponseInterceptor`** wraps successful payloads as `{ success, statusCode, message, data }`, with optional `meta`. Services/controllers often return `{ message, data }` or plain `data`—know the interceptor shape when documenting or testing.
-3. **Cache header:** If a handler returns an object with `__cache`, the interceptor strips it and sets `**X-Cache`** (see `response.interceptor.ts`).
-4. **Auth:** JWT via Passport (`JwtStrategy`, `JwtGuard`). `**CurrentUser`** decorator reads `SafeUser` from the request. Role enum in Prisma: `UserRole` (`CUSTOMER`, `ADMIN`, `RIDER`).
-5. **Swagger:** Route-level docs use custom composable decorators under `modules/*/docs/` (e.g. `ApiSignUp()`), sometimes with `ApiExtraModels` + discriminator for unions.
+3. **Auth:** JWT via Passport (`JwtStrategy`, `JwtGuard`). `**CurrentUser`** decorator reads `SafeUser` from the request. Role enum in Prisma: `UserRole` (`CUSTOMER`, `ADMIN`, `RIDER`).
+4. **Swagger:** Route-level docs use custom composable decorators under `modules/*/docs/` (e.g. `ApiSignUp()`), sometimes with `ApiExtraModels` + discriminator for unions.
 
 ---
 

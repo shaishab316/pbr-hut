@@ -84,16 +84,4 @@ describe('ResponseInterceptor', () => {
         done();
       });
   });
-
-  it('should set X-Cache header and strip __cache field', (done) => {
-    interceptor
-      .intercept(
-        mockContext,
-        mockCallHandler({ __cache: 'HIT', message: 'OK' }),
-      )
-      .subscribe(() => {
-        expect(mockResponse.setHeader).toHaveBeenCalledWith('X-Cache', 'HIT');
-        done();
-      });
-  });
 });

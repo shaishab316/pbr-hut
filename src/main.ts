@@ -16,6 +16,7 @@ import {
   WINSTON_MODULE_PROVIDER,
 } from 'nest-winston';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { CacheInterceptor } from './common/interceptors/cache.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -51,6 +52,7 @@ async function bootstrap() {
 
   //? global interceptors
   app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(app.get(CacheInterceptor));
 
   //? global exception filter
   app.useGlobalFilters(
