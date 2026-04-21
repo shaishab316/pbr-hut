@@ -5,6 +5,7 @@ import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import chalk from 'chalk';
 import compression from 'compression';
 import { NextFunction, Request, Response } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
@@ -48,9 +49,25 @@ async function bootstrap() {
   logger.log('🗜️  Gzip compression enabled');
   app.use(compression());
 
+  //? parse json body
+  app.use(express.json());
+
   //? global prefix
   logger.log('🔧 Setting global prefix to /api/v1');
   app.setGlobalPrefix('api/v1');
+
+  //? log raw request body for debugging
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    if (
+      req.method === 'POST' ||
+      req.method === 'PUT' ||
+      req.method === 'PATCH'
+    ) {
+      console.log(`📨 [${req.method}] ${req.path}`);
+      console.log('Raw Body:', JSON.stringify(req.body, null, 2));
+    }
+    next();
+  });
 
   //? global pipes — zod validation
   logger.log('✔️  Zod validation pipe configured');

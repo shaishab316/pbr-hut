@@ -337,9 +337,17 @@ export class AuthService {
       identifierType: 'email',
     });
 
+    const phoneExistingUser = await this.userRepo.findByPhone(signUpDto.phone);
+
     if (existingUser) {
       throw new BadRequestException(
-        'Already have an account with this identifier, please login instead',
+        'Already have an account with this email identifier, please login instead',
+      );
+    }
+
+    if (phoneExistingUser) {
+      throw new BadRequestException(
+        'Already have an account with this phone number, please login instead',
       );
     }
 
