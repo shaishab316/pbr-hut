@@ -157,7 +157,7 @@ export class ItemController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @InvalidateCache(
-    'items:all',
+    'items:all:*',
     'items:popular',
     'items:you-may-like',
     // 'items:hot-search-terms', // it come when /item?search=xxx, so no need to invalidate when create/update item
@@ -185,7 +185,7 @@ export class ItemController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @InvalidateCache(
-    'items:all',
+    'items:all:*',
     'items:popular',
     'items:you-may-like',
     'items:single::params.id',
@@ -210,7 +210,7 @@ export class ItemController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @InvalidateCache(
-    'items:all',
+    'items:all:*',
     'items:popular',
     'items:you-may-like',
     'items:single::params.id',

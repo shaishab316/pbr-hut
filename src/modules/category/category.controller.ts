@@ -46,14 +46,14 @@ export class CategoryController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateCategory()
-  @InvalidateCache('categories:all')
+  @InvalidateCache('categories:all:*')
   create(@Body() dto: CreateCategoryDto) {
     return this.categoryService.create(dto);
   }
 
   @Patch(':id')
   @ApiUpdateCategory()
-  @InvalidateCache('categories:all')
+  @InvalidateCache('categories:all:*')
   update(@Param('id') id: string, @Body() dto: CreateCategoryDto) {
     return this.categoryService.update(id, dto);
   }
@@ -61,7 +61,7 @@ export class CategoryController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteCategory()
-  @InvalidateCache('categories:all')
+  @InvalidateCache('categories:all:*')
   remove(@Param('id') id: string) {
     return this.categoryService.remove(id);
   }
@@ -78,7 +78,7 @@ export class CategoryController {
   @Post(':id/sub-categories')
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateSubCategory()
-  @InvalidateCache('categories:all', 'categories:subcategories::params.id')
+  @InvalidateCache('categories:all:*', 'categories:subcategories::params.id')
   createSub(
     @Param('id') categoryId: string,
     @Body() dto: CreateSubCategoryDto,
@@ -88,7 +88,7 @@ export class CategoryController {
 
   @Patch('sub-categories/:subId')
   @ApiUpdateSubCategory()
-  @InvalidateCache('categories:all', 'categories:subcategories:*')
+  @InvalidateCache('categories:all:*', 'categories:subcategories:*')
   updateSub(@Param('subId') subId: string, @Body() dto: CreateSubCategoryDto) {
     return this.categoryService.updateSub(subId, dto);
   }
@@ -96,7 +96,7 @@ export class CategoryController {
   @Delete('sub-categories/:subId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteSubCategory()
-  @InvalidateCache('categories:all', 'categories:subcategories:*')
+  @InvalidateCache('categories:all:*', 'categories:subcategories:*')
   removeSub(@Param('subId') subId: string) {
     return this.categoryService.removeSub(subId);
   }

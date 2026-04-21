@@ -44,7 +44,7 @@ export class AdsController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(AdsMediaUploadInterceptor)
-  @InvalidateCache('ads:all')
+  @InvalidateCache('ads:all:*')
   async createAds(
     @UploadedFiles() files: { media?: Express.Multer.File[] },
     @Body() body: any,
@@ -109,7 +109,7 @@ export class AdsController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(AdsMediaUploadInterceptor)
-  @InvalidateCache('ads:all', 'ads:single::params.id')
+  @InvalidateCache('ads:all:*', 'ads:single::params.id')
   async updateAds(
     @Param('id') adsId: string,
     @UploadedFiles() files: { media?: Express.Multer.File[] },
@@ -140,7 +140,7 @@ export class AdsController {
   @Delete(':id')
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
-  @InvalidateCache('ads:all', 'ads:single::params.id')
+  @InvalidateCache('ads:all:*', 'ads:single::params.id')
   async deleteAds(@Param('id') adsId: string) {
     const deletedAds = await this.adsService.deleteAds(adsId);
 

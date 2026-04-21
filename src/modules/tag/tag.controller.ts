@@ -40,14 +40,14 @@ export class TagController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateTag()
-  @InvalidateCache('tags:all')
+  @InvalidateCache('tags:all:*')
   create(@Body() dto: CreateTagDto) {
     return this.tagService.create(dto);
   }
 
   @Patch(':id')
   @ApiUpdateTag()
-  @InvalidateCache('tags:all')
+  @InvalidateCache('tags:all:*')
   update(@Param('id') id: string, @Body() dto: CreateTagDto) {
     return this.tagService.update(id, dto);
   }
@@ -55,7 +55,7 @@ export class TagController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteTag()
-  @InvalidateCache('tags:all')
+  @InvalidateCache('tags:all:*')
   remove(@Param('id') id: string) {
     return this.tagService.remove(id);
   }
