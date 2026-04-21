@@ -110,6 +110,7 @@ export class RiderOrderService {
         assignedRiderId: null,
         status: { in: RIDER_POOL_STATUSES },
         h3Index: { in: cells },
+        declines: { none: { riderId: userId } },
       },
       include: riderNearbyInclude,
       omit: { confirmationCode: true }, //! should be hidden from the rider
@@ -119,7 +120,6 @@ export class RiderOrderService {
     const sorted = this.sortNearby(rows, ref).slice(0, query.limit);
 
     return {
-      message: 'Success',
       data: sorted,
       meta: {
         h3CellsSearched: cells.length,
@@ -429,5 +429,49 @@ export class RiderOrderService {
       message: 'Estimated arrival time updated',
       data: updated,
     };
+  }
+
+  async declineOrder(riderId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        assignedRiderId: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.type !== OrderType.DELIVERY) {
+      throw new BadRequestException(
+        'Only delivery orders can be declined by riders',
+      );
+    }
+    if (order.assignedRiderId != null) {
+      throw new BadRequestException(
+        'Cannot decline an order already assigned to a rider',
+      );
+    }
+    if (!RIDER_POOL_STATUSES.includes(order.status)) {
+      throw new BadRequestException('Order is not available for decline');
+    }
+
+    const existing = await this.prisma.orderDecline.findUnique({
+      where: { orderId_riderId: { orderId, riderId } },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new BadRequestException('You have already declined this order');
+    }
+
+    await this.prisma.orderDecline.create({
+      data: {
+        orderId,
+        riderId,
+      },
+    });
   }
 }

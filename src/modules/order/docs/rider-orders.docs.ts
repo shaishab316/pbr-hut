@@ -280,3 +280,32 @@ export const ApiRiderAddTime = () =>
     }),
     ApiUnauthorizedResponse({ description: 'Not a rider' }),
   );
+
+export const ApiRiderDeclineOrder = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOrderIdParam,
+    ApiOperation({
+      summary: 'Decline delivery order',
+      description:
+        'Declines an **unassigned** delivery order from the pool. ' +
+        'The order remains available for other riders. ' +
+        'Cannot decline twice or if already assigned to someone.',
+    }),
+    ApiOkResponse({
+      description: 'Order declined',
+      schema: {
+        example: {
+          message: 'Order declined',
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Order is assigned, not delivery type, already declined, or not available',
+    }),
+    ApiNotFoundResponse({
+      description: 'Order not found',
+    }),
+    ApiUnauthorizedResponse({ description: 'Not a rider' }),
+  );

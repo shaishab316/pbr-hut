@@ -21,6 +21,7 @@ import { AddTimeDto } from './dto/add-time.dto';
 import { RiderOrderService } from './rider-order.service';
 import {
   ApiRiderAcceptOrder,
+  ApiRiderDeclineOrder,
   ApiRiderDeliverOrder,
   ApiRiderGetOrder,
   ApiRiderListAssigned,
@@ -45,11 +46,20 @@ export class RiderOrderController {
   @Get('nearby-requests')
   @CacheKey('rider-orders:nearby::user.id')
   @CacheTTL(30)
-  listNearby(
+  async listNearby(
     @CurrentUser('id') riderId: string,
     @Query() query: NearbyRiderOrdersDto,
   ) {
-    return this.riderOrderService.listNearbyRequests(riderId, query);
+    const { data, meta } = await this.riderOrderService.listNearbyRequests(
+      riderId,
+      query,
+    );
+
+    return {
+      message: 'Nearby orders retrieved successfully',
+      data,
+      meta,
+    };
   }
 
   @ApiRiderListAssigned()
@@ -138,5 +148,20 @@ export class RiderOrderController {
     @Body() dto: AddTimeDto,
   ) {
     return this.riderOrderService.addTimeToOrder(riderId, orderId, dto);
+  }
+
+  @ApiRiderDeclineOrder()
+  @Post(':orderId/decline')
+  @HttpCode(HttpStatus.OK)
+  @InvalidateCache('rider-orders:nearby::user.id')
+  async decline(
+    @CurrentUser('id') riderId: string,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+  ) {
+    await this.riderOrderService.declineOrder(riderId, orderId);
+
+    return {
+      message: 'Order declined successfully',
+    };
   }
 }
