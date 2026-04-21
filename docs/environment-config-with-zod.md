@@ -45,6 +45,8 @@ MAIL_FROM_NAME=PBR Hut
 # Features
 ENABLE_SWAGGER=true
 ENABLE_BULL_BOARD=true
+
+LOKI_URL=
 ```
 
 ## Validation Schema
