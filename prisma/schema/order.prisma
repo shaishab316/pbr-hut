@@ -36,9 +36,10 @@ model Order {
   billingAddress  OrderBillingAddress? // usually set for CARD; optional snapshot for COD
   items           OrderItem[]
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   riderEarning RiderEarning?
+  declines     OrderDecline[]
 
   @@index([userId])
   @@index([status])
@@ -123,4 +124,18 @@ model OrderItemExtra {
   price     Decimal @db.Decimal(10, 2)
 
   @@map("order_item_extras")
+}
+
+model OrderDecline {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  riderId String
+  rider   User   @relation("DeclinedOrders", fields: [riderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, riderId])
+  @@index([riderId])
+  @@map("order_declines")
 }
