@@ -230,10 +230,8 @@ export class AuthService {
     const { passwordHash, ...safeUser } = user;
 
     return {
-      data: {
-        token,
-        user: safeUser,
-      },
+      token,
+      user: safeUser,
     };
   }
 
