@@ -6,8 +6,8 @@ export const CurrentUser = createParamDecorator(
     data: K | undefined,
     ctx: ExecutionContext,
   ): SafeUser | SafeUser[K] => {
-    const user = ctx.switchToHttp().getRequest().user as SafeUser;
+    const user = ctx.switchToHttp().getRequest()?.user as SafeUser;
 
-    return data ? user[data] : user;
+    return data ? user?.[data] : user;
   },
 );

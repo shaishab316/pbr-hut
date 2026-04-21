@@ -102,6 +102,7 @@ export class ItemController {
   @ApiGetItems()
   @CacheKey('items:you-may-like::user.id')
   @CacheTTL(120)
+  @UseGuards(JwtGuard)
   async youMayLike(
     @Query() query: QueryItemsDto,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
