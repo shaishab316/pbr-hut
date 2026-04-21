@@ -11,6 +11,8 @@ export const QueryOrderHistorySchema = z.object({
   page: z.coerce.number().int().min(1, 'Page must be at least 1').default(1),
 });
 
-export class QueryOrderHistoryDto extends createZodDto(QueryOrderHistorySchema) {}
+export class QueryOrderHistoryDto extends createZodDto(
+  QueryOrderHistorySchema,
+) {}
 
 export type QueryOrderHistoryInput = z.infer<typeof QueryOrderHistorySchema>;

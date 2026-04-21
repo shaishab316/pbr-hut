@@ -19,10 +19,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly userRepository: UserRepository,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (req: any) => {
+          // Extract raw token from query parameter ?token=xxx (no Bearer prefix)
+          if (req.query?.token) {
+            return req.query.token;
+          }
+          return null;
+        },
+      ]),
       secretOrKey: config.get('JWT_SECRET', { infer: true }),
     });
-    this.logger.log('JWT strategy initialized');
+    this.logger.log(
+      'JWT strategy initialized (Bearer header or ?token query param)',
+    );
   }
 
   async validate(payload: JwtPayload) {
