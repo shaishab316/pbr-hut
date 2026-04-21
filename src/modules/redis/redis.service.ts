@@ -97,29 +97,36 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async deleteByPattern(keyFn: (ctx: Ctx) => string): Promise<number> {
-    let deletedCount = 0;
+    const pattern = keyFn(CACHE_KEY);
 
-    const stream = this.client.scanStream({
-      match: keyFn(CACHE_KEY),
-      count: 100, // Fetch keys in chunks of 100
-    });
-
-    // The 'for await' loop naturally waits for the promise in the body to resolve
-    // before pulling the next chunk of data from the stream.
-    for await (const chunk of stream) {
-      const keys = chunk as string[];
-
-      if (keys.length > 0) {
-        // Use a pipeline to send all delete commands to Redis in one single network trip
-        const pipeline = this.client.pipeline();
-        keys.forEach((key) => pipeline.del(key));
-        await pipeline.exec();
-
-        deletedCount += keys.length;
-      }
+    if (!/[*?[]/.test(pattern)) {
+      return await this.client.unlink(pattern); // 0 or 1
     }
 
-    return deletedCount;
+    //everything runs inside Redis to avoid network overhead of multiple round-trips for SCAN + DEL.
+    const luaScript = `
+    local pattern = ARGV[1]
+    local scanCount = tonumber(ARGV[2]) or 100
+    local cursor = "0"
+    local deleted = 0
+
+    repeat
+      local res = redis.call("SCAN", cursor, "MATCH", pattern, "COUNT", scanCount)
+      cursor = res[1]
+      local keys = res[2]
+
+      if #keys > 0 then
+        redis.call("UNLINK", unpack(keys))
+        deleted = deleted + #keys
+      end
+    until cursor == "0"
+
+    return deleted
+  `;
+
+    const result = await this.client.eval(luaScript, 0, pattern, 100);
+
+    return result as number;
   }
 
   async flushDb(): Promise<void> {
