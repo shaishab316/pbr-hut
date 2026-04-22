@@ -28,6 +28,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AdsModule } from './modules/ads/ads.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WinstonModule } from 'nest-winston';
+import { SocketModule } from './modules/socket/socket.module';
 import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
 
@@ -56,6 +57,7 @@ import LokiTransport from 'winston-loki';
       }),
     }),
     ScheduleModule.forRoot(),
+    SocketModule,
     PrismaModule,
     UploadModule,
     RedisModule,
@@ -88,6 +90,7 @@ import LokiTransport from 'winston-loki';
     RestaurantModule,
     AdminModule,
     AdsModule,
+    SocketModule,
   ],
 })
 export class AppModule implements NestModule {
