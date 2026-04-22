@@ -427,4 +427,10 @@ export class AuthService {
 
     return { identifier };
   }
+
+  async deleteExpiredRefreshTokens(): Promise<number> {
+    const deletedCount = await this.refreshTokenRepo.deleteExpired();
+    this.logger.log(`🗑️  Deleted ${deletedCount} expired refresh tokens`);
+    return deletedCount;
+  }
 }

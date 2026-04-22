@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import type { Env } from '@/common/config/app.config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthCron } from './auth.cron';
 import { JwtStrategy } from '@/common/strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { AuthCacheRepository } from './repository/auth.cache.repository';
@@ -35,6 +36,7 @@ import { RiderModule } from '../rider/rider.module';
   ],
   providers: [
     AuthService,
+    AuthCron,
     JwtStrategy,
     AuthCacheRepository,
     RefreshTokenRepository,
