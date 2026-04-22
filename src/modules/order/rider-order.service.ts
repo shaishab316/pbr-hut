@@ -16,6 +16,7 @@ import type { NearbyRiderOrdersInput } from './dto/nearby-rider-orders.dto';
 import type { DeliverOrderInput } from './dto/deliver-order.dto';
 import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
 import type { AddTimeInput } from './dto/add-time.dto';
+import { SocketGateway } from '../socket/socket.gateway';
 
 /** Unassigned delivery orders a rider can claim (includes PENDING until a kitchen workflow narrows this) */
 const RIDER_POOL_STATUSES: OrderStatus[] = [
@@ -64,6 +65,7 @@ export class RiderOrderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly riderRepo: RiderRepository,
+    private readonly socketGateway: SocketGateway,
   ) {}
 
   private async getRiderReferencePoint(userId: string): Promise<{
@@ -322,10 +324,13 @@ export class RiderOrderService {
       omit: { confirmationCode: true }, //! should be hidden from the rider
     });
 
-    return {
-      message: 'Order assigned to you',
-      data: full,
-    };
+    //? notify other riders
+    this.socketGateway.emit('*', 'riderOrderAssigned', {
+      orderId,
+      riderId,
+    });
+
+    return full;
   }
 
   async deliverOrder(riderId: string, orderId: string, dto: DeliverOrderInput) {
@@ -381,10 +386,7 @@ export class RiderOrderService {
       return updatedOrder;
     });
 
-    return {
-      message: 'Delivery completed',
-      data: full,
-    };
+    return full;
   }
 
   async addTimeToOrder(riderId: string, orderId: string, dto: AddTimeInput) {

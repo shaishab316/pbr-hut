@@ -115,11 +115,16 @@ export class RiderOrderController {
     'rider-orders:nearby::user.id',
     'rider-orders:single::params.orderId',
   )
-  accept(
+  async accept(
     @CurrentUser('id') riderId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
   ) {
-    return this.riderOrderService.acceptOrder(riderId, orderId);
+    const data = await this.riderOrderService.acceptOrder(riderId, orderId);
+
+    return {
+      message: 'Order accepted successfully',
+      data,
+    };
   }
 
   @ApiRiderDeliverOrder()
@@ -130,12 +135,21 @@ export class RiderOrderController {
     'rider-orders:history::user.id',
     'rider-orders:single::params.orderId',
   )
-  deliver(
+  async deliver(
     @CurrentUser('id') riderId: string,
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Body() dto: DeliverOrderDto,
   ) {
-    return this.riderOrderService.deliverOrder(riderId, orderId, dto);
+    const data = await this.riderOrderService.deliverOrder(
+      riderId,
+      orderId,
+      dto,
+    );
+
+    return {
+      message: 'Order delivered successfully',
+      data,
+    };
   }
 
   @ApiRiderAddTime()

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UserRepository } from '../user/repositories/user.repository';
+import { JwtPayload } from '@/common/strategies/jwt.strategy';
 
 interface AuthSocket extends Socket {
   user: SafeUser;
@@ -38,7 +39,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new UnauthorizedException('No token provided');
       }
 
-      const payload = await this.jwtService.verifyAsync(token);
+      const payload: JwtPayload = await this.jwtService.verifyAsync(token);
 
       const user = await this.userRepo.findById(payload.sub);
 
@@ -70,12 +71,24 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
   }
 
-  emit(rooms: string[], event: string, data: any) {
-    rooms.forEach((room) => {
-      this.server.to(room).emit(event, data);
+  emit(rooms: string | string[], event: string, data: any) {
+    if (rooms === '*') {
+      this.server.emit(event, data);
       this.logger.debug(
-        `Emitted event '${event}' to room '${room}' with data: ${JSON.stringify(data)}`,
+        `Emitted event '${event}' to all clients with data: ${JSON.stringify(data)}`,
       );
-    });
+    } else if (typeof rooms === 'string') {
+      this.server.to(rooms).emit(event, data);
+      this.logger.debug(
+        `Emitted event '${event}' to room '${rooms}' with data: ${JSON.stringify(data)}`,
+      );
+    } else {
+      rooms.forEach((room, idx) => {
+        this.server.to(room).emit(event, data);
+        this.logger.debug(
+          `Emitted event '${event}' to room '${room}' with data: ${JSON.stringify(data)} (index ${idx})`,
+        );
+      });
+    }
   }
 }
