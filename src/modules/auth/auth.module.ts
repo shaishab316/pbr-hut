@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from '@/common/strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { AuthCacheRepository } from './repository/auth.cache.repository';
+import { RefreshTokenRepository } from './repository/refresh-token.repository';
 import { EmailContactStrategy } from './strategies/email.contact.strategy';
 import { PhoneContactStrategy } from './strategies/phone.contact.strategy';
 import {
@@ -36,6 +37,7 @@ import { RiderModule } from '../rider/rider.module';
     AuthService,
     JwtStrategy,
     AuthCacheRepository,
+    RefreshTokenRepository,
     EmailContactStrategy,
     PhoneContactStrategy,
     {

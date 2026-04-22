@@ -18,6 +18,7 @@ model User {
   orders           Order[]        @relation("CustomerOrders")
   riderAssignments Order[]        @relation("AssignedRider")
   declinedOrders   OrderDecline[] @relation("DeclinedOrders")
+  refreshTokens    RefreshToken[]
 
   @@index([email])
   @@index([phone])

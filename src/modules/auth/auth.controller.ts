@@ -8,9 +8,11 @@ import {
 } from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import {
   ApiForgotPassword,
   ApiLogin,
+  ApiRefreshToken,
   ApiResendOtp,
   ApiResetPassword,
   ApiRiderSignUp,
@@ -102,5 +104,14 @@ export class AuthController {
     await this.authService.resetPassword(dto);
 
     return { message: 'Password reset successfully' };
+  }
+
+  @ApiRefreshToken()
+  @Post('refresh-token')
+  @HttpCode(200)
+  async refreshToken(@Body() dto: RefreshTokenDto) {
+    const data = await this.authService.refreshAccessToken(dto);
+
+    return { message: 'Access token refreshed successfully', data };
   }
 }

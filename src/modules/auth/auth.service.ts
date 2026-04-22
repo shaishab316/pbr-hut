@@ -9,8 +9,14 @@ import {
   UnverifiedRider,
   type UnverifiedUser,
 } from './repository/auth.cache.repository';
+import { RefreshTokenRepository } from './repository/refresh-token.repository';
 import { ContactStrategyFactory } from './strategies/contact.strategy.factory';
-import { comparePassword, hashPassword } from '@/common/helpers';
+import {
+  comparePassword,
+  generateNonceWithHash,
+  hashNonce,
+  hashPassword,
+} from '@/common/helpers';
 import type { SignUpInput } from './dto/sign-up.dto';
 import { OtpService } from '../otp/otp.service';
 import { VerifyOtpFlow, VerifyOtpInput } from './dto/verify-otp.dto';
@@ -26,6 +32,7 @@ import { RiderSignUpDto } from './dto/rider-sign-up.dto';
 import { UserRole } from '@prisma/client';
 import { RiderRepository } from '../rider/repositories/rider.repository';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 export type ResetPasswordTokenPayload = {
   sub: string; // userId
@@ -40,6 +47,7 @@ export class AuthService {
     private readonly authCacheRepo: AuthCacheRepository,
     private readonly userRepo: UserRepository,
     private readonly riderRepo: RiderRepository,
+    private readonly refreshTokenRepo: RefreshTokenRepository,
     private readonly contactStrategyFactory: ContactStrategyFactory,
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
@@ -270,13 +278,54 @@ export class AuthService {
 
     const token = this.jwtService.sign(payload);
 
+    const { nonce: refreshToken, hash: tokenHash } = generateNonceWithHash(32);
+
+    await this.refreshTokenRepo.create({
+      userId: user.id,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...safeUser } = user;
 
     return {
       token,
+      refreshToken,
       user: safeUser,
     };
+  }
+
+  async refreshAccessToken(refreshTokenDto: RefreshTokenDto) {
+    try {
+      const tokenHash = hashNonce(refreshTokenDto.refreshToken);
+
+      const storedToken =
+        await this.refreshTokenRepo.findByTokenHash(tokenHash);
+
+      if (!storedToken || storedToken.expiresAt < new Date()) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      const safeUser = storedToken.user;
+
+      const payload: JwtPayload = {
+        sub: safeUser.id,
+        identifier: safeUser.email || safeUser.phone || safeUser.id,
+      };
+
+      const newAccessToken = this.jwtService.sign(payload);
+
+      return {
+        token: newAccessToken,
+        user: safeUser,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 
   async forgotPassword(dto: ForgotPasswordInput) {
