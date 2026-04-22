@@ -58,7 +58,7 @@ export class ItemController {
 
   @Get()
   @ApiGetItems()
-  @CacheKey('items:all')
+  @CacheKey('items:all:')
   @CacheTTL(120)
   async findMany(@Query() query: QueryItemsDto) {
     const { items, total } = await this.itemService.findMany(query);

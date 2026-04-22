@@ -77,7 +77,7 @@ export class AdsController {
   }
 
   @Get()
-  @CacheKey('ads:all')
+  @CacheKey('ads:all:')
   @CacheTTL(120)
   async getAds() {
     const ads = await this.adsService.getAds();

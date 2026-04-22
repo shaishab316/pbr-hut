@@ -31,7 +31,7 @@ export class TagController {
 
   @Get()
   @ApiGetTags()
-  @CacheKey('tags:all')
+  @CacheKey('tags:all:')
   @CacheTTL(300)
   findAll() {
     return this.tagService.findAll();

@@ -49,7 +49,7 @@ export class AdminDashboardController {
   }
 
   @Get('orders')
-  @CacheKey('admin:orders:all')
+  @CacheKey('admin:orders:all:')
   @CacheTTL(120)
   async getAllOrders(@Query() dto: QueryOrdersDto) {
     const [orders, total] = await this.adminDashboardService.getAllOrders(dto);
@@ -67,7 +67,7 @@ export class AdminDashboardController {
   }
 
   @Get('riders')
-  @CacheKey('admin:riders:all')
+  @CacheKey('admin:riders:all:')
   @CacheTTL(120)
   async getAllRiders(@Query() dto: QueryRiderDto) {
     const [riders, total] = await this.adminDashboardService.getAllRiders(dto);

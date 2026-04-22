@@ -37,7 +37,7 @@ export class CategoryController {
   // Category
   @Get()
   @ApiGetCategories()
-  @CacheKey('categories:all')
+  @CacheKey('categories:all:')
   @CacheTTL(300)
   findAll() {
     return this.categoryService.findAll();
