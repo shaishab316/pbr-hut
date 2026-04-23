@@ -31,6 +31,7 @@ import { WinstonModule } from 'nest-winston';
 import { SocketModule } from './modules/socket/socket.module';
 import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import LokiTransport from 'winston-loki';
     UploadModule,
     RedisModule,
     MailModule,
+    NotificationModule,
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => ({

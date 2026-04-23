@@ -132,6 +132,16 @@ const envSchema = z.object({
     .url('LOKI_URL must be a valid URL')
     .default('http://localhost:3100')
     .describe('Loki logging server URL'),
+
+  ONESIGNAL_API_KEY: z
+    .string()
+    .min(1, 'ONESIGNAL_API_KEY is required')
+    .describe('OneSignal REST API key'),
+
+  ONESIGNAL_APP_ID: z
+    .string()
+    .min(1, 'ONESIGNAL_APP_ID is required')
+    .describe('OneSignal App ID'),
 });
 
 export const validate = (config: Record<string, unknown>) => {
