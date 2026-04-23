@@ -29,6 +29,7 @@ model Order {
   // Bill breakdown — snapshots from cart at checkout time
   itemsTotal     Decimal @db.Decimal(10, 2)
   deliveryCharge Decimal @default(0) @db.Decimal(10, 2) // 0 for PICKUP
+  discount       Decimal @default(0) @db.Decimal(10, 2) // $1000 >= 1% discount
   taxes          Decimal @default(0) @db.Decimal(10, 2)
   totalAmount    Decimal @db.Decimal(10, 2)
 

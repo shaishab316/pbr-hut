@@ -130,9 +130,21 @@ export class OrderService {
         );
       }
 
-      const totalAmount = itemsTotal.add(taxes).add(deliveryCharge);
+      // Calculate discount: 1% off for orders >= $1000
+      let discount = new Prisma.Decimal(0);
+      if (itemsTotal.gte(1000)) {
+        discount = itemsTotal.mul(0.01); // 1% of items total
+        this.logger.log(
+          `🎉 Discount applied: 1% on items total = ${discount.toString()} for user: ${userId}`,
+        );
+      }
+
+      const totalAmount = itemsTotal
+        .add(taxes)
+        .add(deliveryCharge)
+        .sub(discount);
       this.logger.log(
-        `💳 Order total: Items=${itemsTotal.toString()}, Delivery=${deliveryCharge.toString()}, Total=${totalAmount.toString()}`,
+        `💳 Order total: Items=${itemsTotal.toString()}, Discount=${discount.toString()}, Delivery=${deliveryCharge.toString()}, Total=${totalAmount.toString()}`,
       );
 
       const scheduledAt =
@@ -188,6 +200,7 @@ export class OrderService {
             scheduledAt,
             itemsTotal,
             deliveryCharge,
+            discount,
             taxes,
             totalAmount,
             estimatedArrivalAt,
