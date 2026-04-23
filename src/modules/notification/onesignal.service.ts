@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Env } from '@/common/config/app.config';
 import { PrismaService } from '@/infra/prisma/prisma.service';
-import { INotificationService } from './interfaces/notification.service.interface';
+import {
+  INotificationService,
+  NotificationSendData,
+} from './interfaces/notification.service.interface';
 
 @Injectable()
 export class OneSignalService implements INotificationService {
@@ -27,10 +30,7 @@ export class OneSignalService implements INotificationService {
     this.logger.debug('🔌 OneSignal client initialized');
   }
 
-  async sendNotification(data: {
-    userIds: string[];
-    message: string;
-  }): Promise<void> {
+  async sendNotification(data: NotificationSendData): Promise<void> {
     const startTime = Date.now();
     this.logger.debug(
       `📨 Fetching devices for ${data.userIds.length} user(s): [${data.userIds.join(', ')}]`,
@@ -66,6 +66,7 @@ export class OneSignalService implements INotificationService {
       const response = await this.client.post('/notifications', {
         app_id: this.appId,
         include_player_ids: player_ids,
+        headings: { en: data.title },
         contents: { en: data.message },
       });
 

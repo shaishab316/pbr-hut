@@ -9,6 +9,7 @@ import type {
   INotificationService,
   NotificationSendData,
 } from './interfaces/notification.service.interface';
+import { NotificationRepository } from './repositories/notification.repository';
 
 @Processor(NOTIFICATION_QUEUE)
 export class NotificationProcessor extends WorkerHost {
@@ -17,6 +18,7 @@ export class NotificationProcessor extends WorkerHost {
   constructor(
     @Inject(NOTIFICATION_SERVICE)
     private readonly notificationService: INotificationService,
+    private readonly notificationRepo: NotificationRepository,
   ) {
     super();
   }
@@ -31,6 +33,22 @@ export class NotificationProcessor extends WorkerHost {
       this.logger.debug(
         `📨 [Job: ${job.id}] Sending notification to ${job.data.userIds.length} user(s)`,
       );
+
+      const alreadyProcessed = await this.notificationRepo.existsByJobId(
+        job.id!,
+      );
+
+      if (!alreadyProcessed) {
+        await this.notificationRepo.createMany(
+          job.data.userIds.map((userId) => ({
+            userId,
+            title: job.data.title,
+            message: job.data.message,
+            type: job.data.type,
+            jobId: job.id,
+          })),
+        );
+      }
 
       await this.notificationService.sendNotification(job.data);
 

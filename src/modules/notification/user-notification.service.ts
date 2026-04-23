@@ -3,8 +3,8 @@ import { NotificationRepository } from './repositories/notification.repository';
 import { Pagination } from '@/common/types/pagination';
 
 @Injectable()
-export class NotificationService {
-  private readonly logger = new Logger(NotificationService.name);
+export class UserNotificationService {
+  private readonly logger = new Logger(UserNotificationService.name);
 
   constructor(private readonly notificationRepo: NotificationRepository) {}
 

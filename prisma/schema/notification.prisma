@@ -13,6 +13,8 @@ model Notification {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  jobId String? @unique // Store Bull job ID for potential future reference
+
   @@index([userId])
   @@index([userId, isRead])
   @@index([createdAt])

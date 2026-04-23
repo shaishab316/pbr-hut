@@ -7,8 +7,9 @@ import {
   NOTIFICATION_SERVICE,
 } from './notification.constants';
 import { NotificationController } from './notification.controller';
-import { NotificationService } from './user-notification.service';
+import { UserNotificationService } from './user-notification.service';
 import { NotificationRepository } from './repositories/notification.repository';
+import { NotificationService } from './notification.service';
 
 @Global()
 @Module({
@@ -16,10 +17,11 @@ import { NotificationRepository } from './repositories/notification.repository';
   controllers: [NotificationController],
   providers: [
     NotificationProcessor,
+    UserNotificationService,
     NotificationService,
     NotificationRepository,
     { provide: NOTIFICATION_SERVICE, useClass: OneSignalService },
   ],
-  exports: [BullModule, NotificationService, NotificationRepository],
+  exports: [BullModule, UserNotificationService, NotificationRepository],
 })
 export class NotificationModule {}

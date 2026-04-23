@@ -70,4 +70,15 @@ export class NotificationRepository {
       },
     });
   }
+
+  async createMany(notifications: Prisma.NotificationCreateManyInput[]) {
+    return await this.prisma.notification.createMany({
+      data: notifications,
+    });
+  }
+
+  async existsByJobId(jobId: string): Promise<boolean> {
+    const count = await this.prisma.notification.count({ where: { jobId } });
+    return count > 0;
+  }
 }

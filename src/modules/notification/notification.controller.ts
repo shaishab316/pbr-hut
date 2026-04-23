@@ -12,14 +12,14 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@/common/decorators';
 import { JwtGuard } from '@/common/guards';
-import { NotificationService } from './user-notification.service';
+import { UserNotificationService } from './user-notification.service';
 import { QueryNotificationsDto } from './dto/query-notifications.dto';
 
 @ApiTags('Notifications')
 @UseGuards(JwtGuard)
 @Controller('notifications')
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(private readonly notificationService: UserNotificationService) {}
 
   /**
    * GET /notifications
