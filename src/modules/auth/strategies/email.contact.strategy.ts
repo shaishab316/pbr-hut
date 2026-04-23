@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { MAIL_QUEUE } from '@/common/mail/mail.constants';
+import { MAIL_QUEUE } from '@/modules/mail/mail.constants';
 import { SafeUser } from '@/common/types/safe-user.type';
 import { UserRepository } from '../../user/repositories/user.repository';
 import {
@@ -12,7 +12,7 @@ import type {
   UnverifiedRider,
   UnverifiedUser,
 } from '../repository/auth.cache.repository';
-import type { SendMailData } from '@/common/mail/mail.processor';
+import type { SendMailData } from '@/modules/mail/mail.processor';
 
 type EmailInput = NarrowLoginInput<'email'>;
 

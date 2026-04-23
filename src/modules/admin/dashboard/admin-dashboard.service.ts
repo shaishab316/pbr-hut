@@ -6,8 +6,8 @@ import { OrderRepository } from '@/modules/order/repositories/order.repository';
 import { QueryOrdersDto } from './dto/query-order.dto';
 import { RiderRepository } from '@/modules/rider/repositories/rider.repository';
 import { QueryRiderDto } from './dto/query-rider.dto';
-import { MAIL_QUEUE } from '@/common/mail/mail.constants';
-import type { SendMailData } from '@/common/mail/mail.processor';
+import { MAIL_QUEUE } from '@/modules/mail/mail.constants';
+import type { SendMailData } from '@/modules/mail/mail.processor';
 
 @Injectable()
 export class AdminDashboardService {

@@ -4,7 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { MailProcessor } from './mail.processor';
 import { MAIL_QUEUE } from './mail.constants';
-import type { Env } from '../config/app.config';
+import type { Env } from '../../common/config/app.config';
 
 @Global()
 @Module({

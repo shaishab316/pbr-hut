@@ -1,6 +1,6 @@
 import { EmailContactStrategy } from '../strategies/email.contact.strategy';
 import { UserRepository } from '../../user/repositories/user.repository';
-import { MAIL_QUEUE } from '@/common/mail/mail.constants';
+import { MAIL_QUEUE } from '@/modules/mail/mail.constants';
 
 const mockUserRepo = {
   findByEmail: jest.fn(),
