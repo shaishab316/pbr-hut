@@ -20,10 +20,10 @@ export class PrismaService
   constructor(config: ConfigService<Env, true>) {
     const pool = new Pool({
       connectionString: config.get('DATABASE_URL', { infer: true }),
-      max: 20,
-      min: 2,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      max: 40,
+      min: 4,
+      idleTimeoutMillis: 60000,
+      connectionTimeoutMillis: 5000,
       maxUses: 7500,
       statement_timeout: 30000,
       idle_in_transaction_session_timeout: 60000,
@@ -37,6 +37,7 @@ export class PrismaService
 
   async onModuleInit() {
     await this.$connect();
+    await this.$queryRaw`SELECT 1`; //? warm up the connection
     this.logger.log('Database connected');
   }
 

@@ -8,7 +8,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -76,5 +76,6 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
     process.exit(0);
   });
