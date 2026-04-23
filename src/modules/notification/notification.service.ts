@@ -23,6 +23,7 @@ export class NotificationService {
       title,
       message,
       type,
+      jobId: `${Date.now()}-${Math.random()}`,
     });
   }
 }
