@@ -1,11 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { UserRepository } from './repositories/user.repository';
-import { UserRole } from '@prisma/client';
+import { UserRole, NotificationType } from '@prisma/client';
 import { RiderRepository } from '../rider/repositories/rider.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { comparePassword, hashPassword } from '@/common/helpers';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CloudinaryService } from '../upload/cloudinary.service';
+import { NotificationService } from '@/modules/notification/notification.service';
 
 @Injectable()
 export class UserService {
@@ -15,6 +16,7 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly riderRepository: RiderRepository,
     private readonly cloudinary: CloudinaryService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async getMe(userId: string) {
@@ -68,6 +70,14 @@ export class UserService {
       });
 
       this.logger.log(`✅ Password changed successfully for user: ${userId}`);
+
+      // 📬 Send notification about successful password change
+      await this.notificationService.sendNotification(
+        [userId],
+        '🔐 Password Changed',
+        'Your password has been changed successfully. If this was not you, please contact support.',
+        NotificationType.INFO,
+      );
     } catch (error) {
       this.logger.error(`❌ Password change failed for user ${userId}:`, error);
       throw error;
@@ -100,6 +110,25 @@ export class UserService {
 
       const result = await this.userRepository.update(userId, updateData);
       this.logger.log(`✅ Profile updated for user: ${userId}`);
+
+      // 📬 Send notification about successful profile update
+      const updateDetails = [] as string[];
+      if (dto.name) updateDetails.push('name');
+      if (dto.phone) updateDetails.push('phone');
+      if (profilePictureFile) updateDetails.push('profile picture');
+
+      const updateMessage =
+        updateDetails.length > 0
+          ? `Updated ${updateDetails.join(', ')}`
+          : 'Profile updated';
+
+      await this.notificationService.sendNotification(
+        [userId],
+        '👤 Profile Updated',
+        `Your profile has been updated successfully. ${updateMessage}.`,
+        NotificationType.INFO,
+      );
+
       return result;
     } catch (error) {
       this.logger.error(`❌ Profile update failed for user ${userId}:`, error);

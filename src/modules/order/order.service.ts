@@ -12,6 +12,8 @@ import {
   PaymentStatus,
   Prisma,
   Size,
+  NotificationType,
+  UserRole,
 } from '@prisma/client';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
@@ -22,6 +24,7 @@ import {
   OrderRepository,
   orderDetailInclude,
 } from './repositories/order.repository';
+import { NotificationService } from '@/modules/notification/notification.service';
 import type { CreateOrderInput } from './dto/create-order.dto';
 import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
 
@@ -67,6 +70,7 @@ export class OrderService {
     private readonly cartRepo: CartRepository,
     private readonly cartService: CartService,
     private readonly orderRepo: OrderRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async placeOrder(userId: string, dto: CreateOrderInput) {
@@ -268,6 +272,23 @@ export class OrderService {
         return created;
       });
 
+      // 📬 Send notification to customer
+      await this.notificationService.sendNotification(
+        [userId],
+        '✅ Order Confirmed',
+        `Your order #${order.orderNumber} has been placed successfully. Order total: $${Number(order.totalAmount)}`,
+        NotificationType.INFO,
+      );
+
+      // 📬 For delivery orders, notify nearby riders about the new order
+      if (order.type === OrderType.DELIVERY && order.h3Index) {
+        await this.notifyNearbyRiders(order);
+      }
+
+      this.logger.log(
+        `✅ Order placed successfully: ${order.id} (Type: ${order.type})`,
+      );
+
       return order;
     } catch (error) {
       this.logger.error(`❌ Order placement failed for user: ${userId}`, error);
@@ -309,6 +330,7 @@ export class OrderService {
         id: true,
         status: true,
         createdAt: true,
+        orderNumber: true,
       },
     });
     if (!order) {
@@ -335,6 +357,14 @@ export class OrderService {
       where: { id: order.id },
       data: { status: OrderStatus.CANCELLED },
     });
+
+    // 📬 Send notification to customer
+    await this.notificationService.sendNotification(
+      [userId],
+      '❌ Order Cancelled',
+      `Your order #${order.orderNumber} has been cancelled successfully.`,
+      NotificationType.INFO,
+    );
 
     return { message: 'Order cancelled' };
   }
@@ -432,6 +462,8 @@ export class OrderService {
       select: {
         id: true,
         paymentStatus: true,
+        userId: true,
+        orderNumber: true,
       },
     });
 
@@ -444,6 +476,23 @@ export class OrderService {
       data: { paymentStatus },
       include: orderDetailInclude,
     });
+
+    // 📬 Send notification to customer about payment status change
+    if (paymentStatus === PaymentStatus.PAID) {
+      await this.notificationService.sendNotification(
+        [order.userId],
+        '💳 Payment Received',
+        `Payment for order #${order.orderNumber} has been received. Thank you!`,
+        NotificationType.INFO,
+      );
+    } else if (paymentStatus === PaymentStatus.REFUNDED) {
+      await this.notificationService.sendNotification(
+        [order.userId],
+        '💰 Refund Processed',
+        `Your refund for order #${order.orderNumber} has been processed.`,
+        NotificationType.INFO,
+      );
+    }
 
     return updated;
   }
@@ -472,5 +521,56 @@ export class OrderService {
     });
 
     return this.updatePaymentStatus(orderId, PaymentStatus.UNPAID);
+  }
+
+  /**
+   * Notify nearby riders about a new delivery order in their area
+   */
+  private async notifyNearbyRiders(order: any): Promise<void> {
+    if (!order.h3Index) {
+      return;
+    }
+
+    try {
+      // Get riders in the same H3 cell area (using H3 neighbors)
+      const nearbyH3Cells = H3IndexUtil.getSearchCells(order.h3Index, 2);
+
+      // Find active riders in those H3 cells
+      const nearbyRiders = await this.prisma.user.findMany({
+        where: {
+          role: UserRole.RIDER,
+          riderProfile: {
+            h3Index: {
+              in: nearbyH3Cells,
+            },
+          },
+        },
+        select: { id: true },
+        take: 50, // Limit to prevent too many notifications
+      });
+
+      if (nearbyRiders.length === 0) {
+        return;
+      }
+
+      const riderIds = nearbyRiders.map((r) => r.id);
+
+      await this.notificationService.sendNotification(
+        riderIds,
+        '🆕 New Delivery Order Available',
+        `Order #${order.orderNumber} is waiting for a rider. Delivery fee: $${(Number(order.deliveryCharge) / 100).toFixed(2)}`,
+        NotificationType.INFO,
+      );
+
+      this.logger.log(
+        `📬 Notified ${riderIds.length} nearby riders about order ${order.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Failed to notify nearby riders for order ${order.id}:`,
+        error,
+      );
+      // Don't throw - this is best effort
+    }
   }
 }

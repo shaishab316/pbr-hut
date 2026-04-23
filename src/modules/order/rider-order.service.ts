@@ -3,8 +3,14 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
-import { OrderStatus, OrderType, Prisma } from '@prisma/client';
+import {
+  OrderStatus,
+  OrderType,
+  Prisma,
+  NotificationType,
+} from '@prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { RiderRepository } from '@/modules/rider/repositories/rider.repository';
@@ -12,6 +18,7 @@ import {
   orderDetailInclude,
   type OrderWithDetailPayload,
 } from './repositories/order.repository';
+import { NotificationService } from '@/modules/notification/notification.service';
 import type { NearbyRiderOrdersInput } from './dto/nearby-rider-orders.dto';
 import type { DeliverOrderInput } from './dto/deliver-order.dto';
 import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
@@ -62,10 +69,13 @@ type NearbyRow = Prisma.OrderGetPayload<{
 
 @Injectable()
 export class RiderOrderService {
+  private readonly logger = new Logger(RiderOrderService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly riderRepo: RiderRepository,
     private readonly socketGateway: SocketGateway,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private async getRiderReferencePoint(userId: string): Promise<{
@@ -265,6 +275,8 @@ export class RiderOrderService {
         status: true,
         assignedRiderId: true,
         h3Index: true,
+        userId: true,
+        orderNumber: true,
       },
     });
 
@@ -324,6 +336,14 @@ export class RiderOrderService {
       omit: { confirmationCode: true }, //! should be hidden from the rider
     });
 
+    // 📬 Notify customer that a rider accepted the order
+    await this.notificationService.sendNotification(
+      [order.userId],
+      '🚗 Rider Accepted Your Order',
+      `A rider has accepted your order #${order.orderNumber} and is on the way to pick it up!`,
+      NotificationType.INFO,
+    );
+
     //? notify other riders
     this.socketGateway.emit('*', 'riderOrderAssigned', {
       orderId,
@@ -342,6 +362,8 @@ export class RiderOrderService {
         confirmationCode: true,
         deliveryCharge: true,
         paymentStatus: true,
+        userId: true,
+        orderNumber: true,
       },
     });
 
@@ -386,6 +408,16 @@ export class RiderOrderService {
       return updatedOrder;
     });
 
+    // 📬 Notify customer that order has been delivered
+    await this.notificationService.sendNotification(
+      [order.userId],
+      '📦 Order Delivered',
+      `Your order #${order.orderNumber} has been delivered successfully. Thank you!`,
+      NotificationType.INFO,
+    );
+
+    this.logger.log(`✅ Order delivered: ${orderId} (Rider: ${riderId})`);
+
     return full;
   }
 
@@ -396,6 +428,8 @@ export class RiderOrderService {
         id: true,
         status: true,
         estimatedArrivalAt: true,
+        userId: true,
+        orderNumber: true,
       },
     });
 
@@ -427,6 +461,14 @@ export class RiderOrderService {
       include: orderDetailInclude,
     });
 
+    // 📬 Notify customer about ETA update
+    await this.notificationService.sendNotification(
+      [order.userId],
+      '⏱️ Delivery Time Updated',
+      `Your order #${order.orderNumber} will arrive ${dto.timeInMinutes} minutes later. New ETA: ${newEstimatedArrivalAt.toLocaleTimeString()}`,
+      NotificationType.INFO,
+    );
+
     return {
       message: 'Estimated arrival time updated',
       data: updated,
@@ -441,6 +483,7 @@ export class RiderOrderService {
         type: true,
         status: true,
         assignedRiderId: true,
+        orderNumber: true,
       },
     });
 
@@ -475,5 +518,7 @@ export class RiderOrderService {
         riderId,
       },
     });
+
+    this.logger.log(`⏭️ Order ${orderId} declined by rider ${riderId}`);
   }
 }

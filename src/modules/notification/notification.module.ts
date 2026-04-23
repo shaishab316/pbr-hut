@@ -22,6 +22,11 @@ import { NotificationService } from './notification.service';
     NotificationRepository,
     { provide: NOTIFICATION_SERVICE, useClass: OneSignalService },
   ],
-  exports: [BullModule, UserNotificationService, NotificationRepository],
+  exports: [
+    BullModule,
+    UserNotificationService,
+    NotificationRepository,
+    NotificationService,
+  ],
 })
 export class NotificationModule {}

@@ -29,10 +29,11 @@ import { ForgotPasswordInput } from './dto/forgot-password.dto';
 import { SafeUser } from '@/common/types/safe-user.type';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RiderSignUpDto } from './dto/rider-sign-up.dto';
-import { UserRole } from '@prisma/client';
+import { UserRole, NotificationType } from '@prisma/client';
 import { RiderRepository } from '../rider/repositories/rider.repository';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { NotificationService } from '@/modules/notification/notification.service';
 
 export type ResetPasswordTokenPayload = {
   sub: string; // userId
@@ -51,6 +52,7 @@ export class AuthService {
     private readonly contactStrategyFactory: ContactStrategyFactory,
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async signUp(signUpDto: SignUpInput) {
@@ -167,6 +169,14 @@ export class AuthService {
       case UserRole.CUSTOMER: {
         const user = await this.userRepo.create(userData);
         this.logger.log(`✅ Customer registered successfully: ${user.id}`);
+
+        // 📬 Send welcome notification to customer
+        await this.notificationService.sendNotification(
+          [user.id],
+          '🎉 Welcome to PBR Hut!',
+          `Welcome ${user.name}! Your account has been created successfully. Start ordering delicious food now!`,
+          NotificationType.INFO,
+        );
         break;
       }
       case UserRole.RIDER: {
@@ -188,6 +198,13 @@ export class AuthService {
           h3Index,
         });
 
+        // 📬 Send welcome notification to rider
+        await this.notificationService.sendNotification(
+          [user.id],
+          '🚗 Welcome to PBR Hut Riders!',
+          `Welcome ${user.name}! Your rider account is ready. Start accepting orders and earning money!`,
+          NotificationType.INFO,
+        );
         break;
       }
     }
@@ -345,6 +362,14 @@ export class AuthService {
 
     await strategy.sendPasswordReset(user, otp);
 
+    // 📬 Send notification about password reset initiation
+    await this.notificationService.sendNotification(
+      [user.id],
+      '🔑 Password Reset Initiated',
+      'You requested a password reset. Check your email or phone for an OTP to proceed. This code expires in 10 minutes.',
+      NotificationType.INFO,
+    );
+
     return { identifier };
   }
 
@@ -376,6 +401,14 @@ export class AuthService {
     });
 
     await this.authCacheRepo.deletePasswordResetNonce(user.id);
+
+    // 📬 Send notification about successful password reset
+    await this.notificationService.sendNotification(
+      [user.id],
+      '✅ Password Changed Successfully',
+      'Your password has been reset successfully. If this was not you, please contact support immediately.',
+      NotificationType.INFO,
+    );
   }
 
   async riderSignUp(signUpDto: RiderSignUpDto) {
