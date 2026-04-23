@@ -20,6 +20,7 @@ model User {
   declinedOrders   OrderDecline[] @relation("DeclinedOrders")
   refreshTokens    RefreshToken[]
   devices          UserDevice[]
+  notifications    Notification[]
 
   @@index([email])
   @@index([phone])

@@ -60,3 +60,9 @@ enum EarningStatus {
 enum TargetItem {
   ITEM
 }
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+}

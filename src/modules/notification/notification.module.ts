@@ -6,14 +6,20 @@ import {
   NOTIFICATION_QUEUE,
   NOTIFICATION_SERVICE,
 } from './notification.constants';
+import { NotificationController } from './notification.controller';
+import { NotificationService } from './user-notification.service';
+import { NotificationRepository } from './repositories/notification.repository';
 
 @Global()
 @Module({
   imports: [BullModule.registerQueue({ name: NOTIFICATION_QUEUE })],
+  controllers: [NotificationController],
   providers: [
     NotificationProcessor,
+    NotificationService,
+    NotificationRepository,
     { provide: NOTIFICATION_SERVICE, useClass: OneSignalService },
   ],
-  exports: [BullModule],
+  exports: [BullModule, NotificationService, NotificationRepository],
 })
 export class NotificationModule {}
