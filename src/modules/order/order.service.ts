@@ -497,30 +497,149 @@ export class OrderService {
     return updated;
   }
 
-  async markAsPaid(orderId: string) {
-    await this.prisma.riderEarning.updateMany({
-      where: {
-        orderId,
-      },
-      data: {
-        status: 'SETTLED',
-      },
-    });
+  async markAsPaid(orderId: string, userId: string, userRole: UserRole) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Fetch order with rider earning details
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          riderEarning: true,
+        },
+      });
 
-    return this.updatePaymentStatus(orderId, PaymentStatus.PAID);
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      // 2. Authorization check: Only ADMIN or the assigned RIDER can mark as paid
+      if (userRole === UserRole.RIDER && order.assignedRiderId !== userId) {
+        throw new BadRequestException(
+          'Riders can only update payment status for their own orders',
+        );
+      }
+
+      if (!order.assignedRiderId) {
+        throw new BadRequestException(
+          'Order is not assigned to a rider. Cannot mark as paid.',
+        );
+      }
+
+      if (!order.riderEarning) {
+        throw new BadRequestException(
+          'No rider earning record found for this order',
+        );
+      }
+
+      // 3. Update rider earning status to SETTLED
+      await tx.riderEarning.update({
+        where: { id: order.riderEarning.id },
+        data: { status: 'SETTLED' },
+      });
+
+      // 4. Increment rider's availableBalance by the earning amount
+      const ridingEarningAmount = order.riderEarning.total;
+      await tx.riderProfile.update({
+        where: { userId: order.assignedRiderId },
+        data: {
+          availableBalance: {
+            increment: ridingEarningAmount,
+          },
+        },
+      });
+
+      // 5. Update order payment status to PAID
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { paymentStatus: PaymentStatus.PAID },
+        include: orderDetailInclude,
+      });
+
+      this.logger.log(
+        `✅ Order #${order.orderNumber} marked as PAID. Rider earning: $${ridingEarningAmount.toString()} credited to rider ${order.assignedRiderId}`,
+      );
+
+      return updated;
+    });
   }
 
-  async markAsUnpaid(orderId: string) {
-    await this.prisma.riderEarning.updateMany({
-      where: {
-        orderId,
-      },
-      data: {
-        status: 'PENDING',
-      },
-    });
+  async markAsUnpaid(orderId: string, userId: string, userRole: UserRole) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Fetch order with rider earning details
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          riderEarning: true,
+        },
+      });
 
-    return this.updatePaymentStatus(orderId, PaymentStatus.UNPAID);
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      // 2. Authorization check: Only ADMIN or the assigned RIDER can mark as unpaid
+      if (userRole === UserRole.RIDER && order.assignedRiderId !== userId) {
+        throw new BadRequestException(
+          'Riders can only update payment status for their own orders',
+        );
+      }
+
+      if (!order.assignedRiderId) {
+        throw new BadRequestException(
+          'Order is not assigned to a rider. Cannot mark as unpaid.',
+        );
+      }
+
+      if (!order.riderEarning) {
+        throw new BadRequestException(
+          'No rider earning record found for this order',
+        );
+      }
+
+      // 3. Verify rider has sufficient balance to reverse
+      const riderProfile = await tx.riderProfile.findUnique({
+        where: { userId: order.assignedRiderId },
+      });
+
+      if (!riderProfile) {
+        throw new NotFoundException('Rider profile not found');
+      }
+
+      const ridingEarningAmount = order.riderEarning.total;
+      if (riderProfile.availableBalance < ridingEarningAmount) {
+        throw new BadRequestException(
+          `Insufficient balance to reverse. Rider balance: $${riderProfile.availableBalance.toString()}, Amount to reverse: $${ridingEarningAmount.toString()}`,
+        );
+      }
+
+      // 4. Update rider earning status back to PENDING
+      await tx.riderEarning.update({
+        where: { id: order.riderEarning.id },
+        data: { status: 'PENDING' },
+      });
+
+      // 5. Decrement rider's availableBalance by the earning amount
+      await tx.riderProfile.update({
+        where: { userId: order.assignedRiderId },
+        data: {
+          availableBalance: {
+            decrement: ridingEarningAmount,
+          },
+        },
+      });
+
+      // 6. Update order payment status back to UNPAID
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { paymentStatus: PaymentStatus.UNPAID },
+        include: orderDetailInclude,
+      });
+
+      this.logger.log(
+        `❌ Order #${order.orderNumber} marked as UNPAID. Rider earning: $${ridingEarningAmount.toString()} reversed from rider ${order.assignedRiderId}`,
+      );
+
+      return updated;
+    });
   }
 
   /**

@@ -11,8 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '@/common/decorators';
-import { JwtGuard } from '@/common/guards';
+import { CurrentUser, Roles } from '@/common/decorators';
+import { JwtGuard, RolesGuard } from '@/common/guards';
+import { UserRole } from '@prisma/client';
 import { OrderService } from './order.service';
 import { CreateOrderDto, CreateOrderInput } from './dto/create-order.dto';
 import { QueryOrderHistoryDto } from './dto/query-order-history.dto';
@@ -132,9 +133,15 @@ export class OrderController {
 
   @Post(':orderId/mark-as-paid')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.RIDER)
   @InvalidateCache('orders:single::params.orderId')
-  async markAsPaid(@Param('orderId', ParseUUIDPipe) orderId: string) {
-    const order = await this.orderService.markAsPaid(orderId);
+  async markAsPaid(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: UserRole,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+  ) {
+    const order = await this.orderService.markAsPaid(orderId, userId, userRole);
     return {
       message: 'Order marked as paid successfully',
       data: order,
@@ -143,9 +150,19 @@ export class OrderController {
 
   @Post(':orderId/mark-as-unpaid')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.RIDER)
   @InvalidateCache('orders:single::params.orderId')
-  async markAsUnpaid(@Param('orderId', ParseUUIDPipe) orderId: string) {
-    const order = await this.orderService.markAsUnpaid(orderId);
+  async markAsUnpaid(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: UserRole,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+  ) {
+    const order = await this.orderService.markAsUnpaid(
+      orderId,
+      userId,
+      userRole,
+    );
     return {
       message: 'Order marked as unpaid successfully',
       data: order,
