@@ -12,6 +12,8 @@ model Item {
   hasSizeVariants  Boolean @default(false)
   hasExtras        Boolean @default(false)
 
+  basePrice Decimal? @db.Decimal(10, 2) // used when hasSizeVariants = false
+
   categoryId    String
   subCategoryId String?
   category      Category     @relation(fields: [categoryId], references: [id])
@@ -36,8 +38,11 @@ model Item {
 }
 
 model Category {
-  id            String        @id @default(uuid())
-  name          String        @unique // "Pizzas", "Burgers"
+  id   String @id @default(uuid())
+  name String @unique // "Pizzas", "Burgers"
+
+  hasSizeVariants Boolean @default(false)
+
   subCategories SubCategory[]
   items         Item[]
 
@@ -45,8 +50,11 @@ model Category {
 }
 
 model SubCategory {
-  id         String   @id @default(uuid())
-  name       String // "Classic", "Vegan"
+  id   String @id @default(uuid())
+  name String // "Classic", "Vegan"
+
+  hasSizeVariants Boolean @default(false)
+
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
   items      Item[]
