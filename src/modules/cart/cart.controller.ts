@@ -45,18 +45,17 @@ export class CartController {
     const cart = await this.cartService.getCart(userId);
 
     const totalBill = cart.items.reduce((total, item) => {
-      // 1. Base prices (Size + Side)
       const sizePrice = parseFloat(item.sizePrice?.toString() || '0');
       const sidePrice = parseFloat(item.sidePrice?.toString() || '0');
+      const basePrice = parseFloat(item.item.basePrice?.toString() || '0');
 
-      // 2. Extras sum
       const extrasTotal = (item.selectedExtras || []).reduce(
         (sum, extra) => sum + parseFloat(extra.price?.toString() || '0'),
         0,
       );
 
-      // 3. Item Total = (Size + Side + Extras) * Quantity
-      const itemTotal = (sizePrice + sidePrice + extrasTotal) * item.quantity;
+      const unitPrice = sizePrice + sidePrice || basePrice;
+      const itemTotal = (unitPrice + extrasTotal) * item.quantity;
 
       return total + itemTotal;
     }, 0);

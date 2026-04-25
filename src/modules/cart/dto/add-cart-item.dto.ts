@@ -8,7 +8,7 @@ export const AddCartItemSchema = z.object({
     .uuid('Invalid size variant ID')
     .optional()
     .nullable(),
-  selectedSideOptionId: z.uuid('Invalid side option ID'),
+  selectedSideOptionId: z.uuid('Invalid side option ID').optional().nullable(),
   extraIds: z.array(z.uuid('Invalid extra ID')).default([]),
   customNote: z.string().max(500).optional().nullable(),
 });

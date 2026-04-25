@@ -78,12 +78,11 @@ export class CartService {
       throw new BadRequestException('Invalid size variant for this item');
     }
 
-    const side = item.sideOptions.find(
-      (s) => s.id === dto.selectedSideOptionId,
-    );
+    const side = dto.selectedSideOptionId
+      ? item.sideOptions.find((s) => s.id === dto.selectedSideOptionId)
+      : null;
 
-    if (!side) {
-      this.logger.warn(`⚠️ Invalid side option for item: ${dto.itemId}`);
+    if (item.sideOptions.length > 0 && !side) {
       throw new BadRequestException('Invalid side option for this item');
     }
 
@@ -171,7 +170,7 @@ export class CartService {
       cartId: cart.id,
       itemId: dto.itemId,
       selectedSizeVariantId: dto.selectedSizeVariantId ?? null,
-      selectedSideOptionId: dto.selectedSideOptionId,
+      selectedSideOptionId: dto.selectedSideOptionId ?? null,
     });
 
     const existing = this.findMatchingCartItem(candidates, dto, sortedExtraIds);
@@ -189,7 +188,7 @@ export class CartService {
       sizeVariant != null
         ? new Prisma.Decimal(sizeVariant.price.toString())
         : null;
-    const sidePrice = new Prisma.Decimal(side.price.toString());
+    const sidePrice = side ? new Prisma.Decimal(side.price.toString()) : null;
 
     await this.cartRepo.createCartItem({
       cart: { connect: { id: cart.id } },
@@ -199,7 +198,9 @@ export class CartService {
       selectedSizeVariant: dto.selectedSizeVariantId
         ? { connect: { id: dto.selectedSizeVariantId } }
         : undefined,
-      selectedSideOption: { connect: { id: dto.selectedSideOptionId } },
+      selectedSideOption: dto.selectedSideOptionId
+        ? { connect: { id: dto.selectedSideOptionId } }
+        : undefined,
       sizePrice,
       sidePrice,
       selectedExtras: {
@@ -349,7 +350,10 @@ export class CartService {
     >,
   ): Prisma.Decimal {
     return items.reduce((total, item) => {
-      let itemPrice = item.selectedSizeVariant?.price || new Prisma.Decimal(0);
+      let itemPrice =
+        item.selectedSizeVariant?.price ??
+        item.item?.basePrice ??
+        new Prisma.Decimal(0);
 
       if (item.selectedSideOption) {
         itemPrice = itemPrice.plus(item.selectedSideOption.price);

@@ -18,6 +18,7 @@ export const cartInclude = {
           hasSizeVariants: true,
           hasExtras: true,
           deletedAt: true,
+          basePrice: true,
         },
       },
       selectedSizeVariant: true,
@@ -76,7 +77,7 @@ export class CartRepository {
     cartId: string;
     itemId: string;
     selectedSizeVariantId: string | null;
-    selectedSideOptionId: string;
+    selectedSideOptionId: string | null;
   }) {
     return this.prisma.cartItem.findMany({
       where: {
