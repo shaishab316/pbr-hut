@@ -5,9 +5,10 @@ import { AdminDashboardService } from './admin-dashboard.service';
 import { AdminDashboardRepository } from './repositories/dashboard.repository';
 import { OrderRepository } from '@/modules/order/repositories/order.repository';
 import { RiderRepository } from '@/modules/rider/repositories/rider.repository';
+import { SocketModule } from '@/modules/socket/socket.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, SocketModule],
   controllers: [AdminDashboardController],
   providers: [
     AdminDashboardService,

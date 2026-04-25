@@ -28,6 +28,7 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import { SocketGateway } from '@/modules/socket/socket.gateway';
 
 @ApiTags('Admin — Dashboard')
 @ApiBearerAuth()
@@ -35,7 +36,10 @@ import {
 @Roles('ADMIN')
 @Controller('admin')
 export class AdminDashboardController {
-  constructor(private readonly adminDashboardService: AdminDashboardService) {}
+  constructor(
+    private readonly adminDashboardService: AdminDashboardService,
+    private readonly socketGateway: SocketGateway,
+  ) {}
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Admin dashboard summary' })
@@ -133,5 +137,15 @@ export class AdminDashboardController {
       message: 'Rider NID declined successfully',
       data,
     };
+  }
+
+  @Post('test-socket')
+  testSocket(@Body() body: any) {
+    this.socketGateway.emit('*', 'riderOrderAssigned', {
+      orderId: body?.orderId,
+      riderId: body?.riderId,
+    });
+
+    return { message: 'Socket emitted', data: body };
   }
 }
