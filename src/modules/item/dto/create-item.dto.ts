@@ -20,14 +20,8 @@ const ItemExtraSchema = z.object({
 
 export const CreateItemSchema = z
   .object({
-    name: z
-      .string()
-      .min(1, 'Name is required')
-      .max(80, 'Name must be at most 80 characters'),
-    description: z
-      .string()
-      .min(1, 'Description is required')
-      .max(300, 'Description must be at most 300 characters'),
+    name: z.string().min(1).max(80),
+    description: z.string().min(1).max(300),
     displayOrder: z.coerce.number().int().min(0).default(0),
     isDeliverable: z.coerce.boolean().default(true),
     isAvailable: z.coerce.boolean().default(true),
@@ -40,22 +34,32 @@ export const CreateItemSchema = z
 
     tagIds: z.array(z.uuid('Invalid tag ID')).default([]),
 
-    sizeVariants: z
-      .array(SizeVariantSchema)
-      .min(1, 'At least one size variant is required'),
-    sideOptions: z
-      .array(SideOptionSchema)
-      .min(1, 'At least one side option is required'),
+    basePrice: z.coerce.number().min(0).optional().nullable(),
+
+    sizeVariants: z.array(SizeVariantSchema).default([]),
+    sideOptions: z.array(SideOptionSchema).default([]),
     extras: z.array(ItemExtraSchema).default([]),
   })
   .superRefine((data, ctx) => {
-    const sizes = data.sizeVariants.map((v) => v.size);
-    if (new Set(sizes).size !== sizes.length) {
+    const hasVariants = data.sizeVariants.length > 0;
+
+    if (!hasVariants && (data.basePrice == null || data.basePrice < 0)) {
       ctx.addIssue({
         code: 'custom',
-        path: ['sizeVariants'],
-        message: 'Duplicate size entries',
+        path: ['basePrice'],
+        message: 'basePrice is required when no size variants are provided',
       });
+    }
+
+    if (hasVariants) {
+      const sizes = data.sizeVariants.map((v) => v.size);
+      if (new Set(sizes).size !== sizes.length) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['sizeVariants'],
+          message: 'Duplicate size entries',
+        });
+      }
     }
 
     const defaults = data.sideOptions.filter((s) => s.isDefault);

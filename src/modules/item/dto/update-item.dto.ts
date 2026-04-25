@@ -20,16 +20,8 @@ const ItemExtraSchema = z.object({
 
 export const UpdateItemSchema = z
   .object({
-    name: z
-      .string()
-      .min(1, 'Name is required')
-      .max(80, 'Name must be at most 80 characters')
-      .optional(),
-    description: z
-      .string()
-      .min(1, 'Description is required')
-      .max(300, 'Description must be at most 300 characters')
-      .optional(),
+    name: z.string().min(1).max(80).optional(),
+    description: z.string().min(1).max(300).optional(),
     displayOrder: z.coerce.number().int().min(0).optional(),
     isDeliverable: z.coerce.boolean().optional(),
     isAvailable: z.coerce.boolean().optional(),
@@ -42,30 +34,37 @@ export const UpdateItemSchema = z
 
     tagIds: z.array(z.uuid('Invalid tag ID')).optional(),
 
-    // When provided, these fully replace the existing nested records
-    sizeVariants: z
-      .array(SizeVariantSchema)
-      .min(1, 'At least one size variant is required')
-      .optional(),
-    sideOptions: z
-      .array(SideOptionSchema)
-      .min(1, 'At least one side option is required')
-      .optional(),
+    basePrice: z.coerce.number().min(0).optional().nullable(),
+
+    sizeVariants: z.array(SizeVariantSchema).optional(),
+    sideOptions: z.array(SideOptionSchema).optional(),
     extras: z.array(ItemExtraSchema).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.sizeVariants) {
-      const sizes = data.sizeVariants.map((v) => v.size);
-      if (new Set(sizes).size !== sizes.length) {
+    if (data.sizeVariants !== undefined) {
+      const hasVariants = data.sizeVariants.length > 0;
+
+      if (!hasVariants && data.basePrice == null) {
         ctx.addIssue({
           code: 'custom',
-          path: ['sizeVariants'],
-          message: 'Duplicate size entries',
+          path: ['basePrice'],
+          message: 'basePrice is required when no size variants are provided',
         });
+      }
+
+      if (hasVariants) {
+        const sizes = data.sizeVariants.map((v) => v.size);
+        if (new Set(sizes).size !== sizes.length) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['sizeVariants'],
+            message: 'Duplicate size entries',
+          });
+        }
       }
     }
 
-    if (data.sideOptions) {
+    if (data.sideOptions !== undefined) {
       const defaults = data.sideOptions.filter((s) => s.isDefault);
       if (defaults.length > 1) {
         ctx.addIssue({
@@ -78,3 +77,5 @@ export const UpdateItemSchema = z
   });
 
 export class UpdateItemDto extends createZodDto(UpdateItemSchema) {}
+
+export type UpdateItemInput = z.infer<typeof UpdateItemSchema>;

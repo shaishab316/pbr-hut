@@ -165,6 +165,8 @@ export class ItemRepository {
           isSideFree: data.isSideFree,
           isExtrasOptional: data.isExtrasOptional,
           hasSizeVariants: data.sizeVariants.length > 0,
+          basePrice:
+            data.sizeVariants.length > 0 ? null : (data.basePrice ?? null),
           hasExtras: data.extras.length > 0,
           categoryId: data.categoryId,
           subCategoryId: data.subCategoryId ?? null,
@@ -250,6 +252,9 @@ export class ItemRepository {
           // Derived boolean flags
           ...(data.sizeVariants !== undefined && {
             hasSizeVariants: data.sizeVariants.length > 0,
+          }),
+          ...(data.basePrice !== undefined && {
+            basePrice: data.basePrice,
           }),
           ...(data.extras !== undefined && {
             hasExtras: data.extras.length > 0,
