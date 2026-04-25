@@ -22,15 +22,20 @@ export class CategoryRepository {
     });
   }
 
-  async create(name: string) {
+  async create(name: string, hasSizeVariants?: boolean) {
     const exists = await this.prisma.category.findUnique({ where: { name } });
     if (exists) throw new ConflictException('Category already exists');
-    return this.prisma.category.create({ data: { name } });
+    return this.prisma.category.create({
+      data: { name, hasSizeVariants: hasSizeVariants ?? false },
+    });
   }
 
-  async update(id: string, name: string) {
+  async update(id: string, name: string, hasSizeVariants?: boolean) {
     await this.findOneOrThrow(id);
-    return this.prisma.category.update({ where: { id }, data: { name } });
+    return this.prisma.category.update({
+      where: { id },
+      data: { name, hasSizeVariants },
+    });
   }
 
   async remove(id: string) {
@@ -45,16 +50,18 @@ export class CategoryRepository {
     });
   }
 
-  async createSub(categoryId: string, name: string) {
+  async createSub(categoryId: string, name: string, hasSizeVariants?: boolean) {
     await this.findOneOrThrow(categoryId);
-    return this.prisma.subCategory.create({ data: { name, categoryId } });
+    return this.prisma.subCategory.create({
+      data: { name, categoryId, hasSizeVariants: hasSizeVariants ?? false },
+    });
   }
 
-  async updateSub(subId: string, name: string) {
+  async updateSub(subId: string, name: string, hasSizeVariants?: boolean) {
     await this.findSubOrThrow(subId);
     return this.prisma.subCategory.update({
       where: { id: subId },
-      data: { name },
+      data: { name, hasSizeVariants },
     });
   }
 

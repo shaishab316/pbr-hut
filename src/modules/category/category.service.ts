@@ -12,11 +12,11 @@ export class CategoryService {
   }
 
   create(dto: CreateCategoryDto) {
-    return this.categoryRepo.create(dto.name);
+    return this.categoryRepo.create(dto.name, dto.hasSizeVariants);
   }
 
   update(id: string, dto: CreateCategoryDto) {
-    return this.categoryRepo.update(id, dto.name);
+    return this.categoryRepo.update(id, dto.name, dto.hasSizeVariants);
   }
 
   remove(id: string) {
@@ -28,11 +28,15 @@ export class CategoryService {
   }
 
   createSub(categoryId: string, dto: CreateSubCategoryDto) {
-    return this.categoryRepo.createSub(categoryId, dto.name);
+    return this.categoryRepo.createSub(
+      categoryId,
+      dto.name,
+      dto.hasSizeVariants,
+    );
   }
 
   updateSub(subId: string, dto: CreateSubCategoryDto) {
-    return this.categoryRepo.updateSub(subId, dto.name);
+    return this.categoryRepo.updateSub(subId, dto.name, dto.hasSizeVariants);
   }
 
   removeSub(subId: string) {
