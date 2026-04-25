@@ -54,7 +54,9 @@ async function bootstrap() {
 
   //? global prefix
   logger.log('🔧 Setting global prefix to /api/v1');
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health', 'queues', 'docs', 'docs-json', 'docs-yaml'],
+  });
 
   //? log raw request body for debugging
   app.use((req: Request, _res: Response, next: NextFunction) => {

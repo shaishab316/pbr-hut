@@ -32,6 +32,7 @@ import { SocketModule } from './modules/socket/socket.module';
 import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
 import { NotificationModule } from './modules/notification/notification.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     AdminModule,
     AdsModule,
     SocketModule,
+    HealthModule,
   ],
 })
 export class AppModule implements NestModule {
