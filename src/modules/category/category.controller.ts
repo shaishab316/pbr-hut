@@ -8,8 +8,12 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '@/common/decorators';
+import { JwtGuard, RolesGuard } from '@/common/guards';
 import {
   CacheKey,
   CacheTTL,
@@ -52,6 +56,8 @@ export class CategoryController {
   @StrictThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateCategory()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('categories:all:*')
   create(@Body() dto: CreateCategoryDto) {
     return this.categoryService.create(dto);
@@ -60,6 +66,8 @@ export class CategoryController {
   @Patch(':id')
   @StrictThrottle()
   @ApiUpdateCategory()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('categories:all:*')
   update(@Param('id') id: string, @Body() dto: CreateCategoryDto) {
     return this.categoryService.update(id, dto);
@@ -69,6 +77,8 @@ export class CategoryController {
   @StrictThrottle()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteCategory()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('categories:all:*')
   remove(@Param('id') id: string) {
     return this.categoryService.remove(id);
@@ -88,6 +98,8 @@ export class CategoryController {
   @StrictThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateSubCategory()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('categories:all:*', 'categories:subcategories::params.id')
   createSub(
     @Param('id') categoryId: string,
@@ -99,6 +111,8 @@ export class CategoryController {
   @Patch('sub-categories/:subId')
   @StrictThrottle()
   @ApiUpdateSubCategory()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('categories:all:*', 'categories:subcategories:*')
   updateSub(@Param('subId') subId: string, @Body() dto: CreateSubCategoryDto) {
     return this.categoryService.updateSub(subId, dto);
@@ -108,6 +122,8 @@ export class CategoryController {
   @StrictThrottle()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteSubCategory()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('categories:all:*', 'categories:subcategories:*')
   removeSub(@Param('subId') subId: string) {
     return this.categoryService.removeSub(subId);

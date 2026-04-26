@@ -8,8 +8,12 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '@/common/decorators';
+import { JwtGuard, RolesGuard } from '@/common/guards';
 import {
   CacheKey,
   CacheTTL,
@@ -46,6 +50,8 @@ export class TagController {
   @StrictThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateTag()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('tags:all:*')
   create(@Body() dto: CreateTagDto) {
     return this.tagService.create(dto);
@@ -54,6 +60,8 @@ export class TagController {
   @Patch(':id')
   @StrictThrottle()
   @ApiUpdateTag()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('tags:all:*')
   update(@Param('id') id: string, @Body() dto: CreateTagDto) {
     return this.tagService.update(id, dto);
@@ -63,6 +71,8 @@ export class TagController {
   @StrictThrottle()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteTag()
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @InvalidateCache('tags:all:*')
   remove(@Param('id') id: string) {
     return this.tagService.remove(id);

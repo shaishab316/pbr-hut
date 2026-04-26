@@ -89,10 +89,6 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
    * Get the actual client IP (considering proxies)
    */
   private getClientIp(req: Record<string, any>): string {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (typeof forwarded === 'string') {
-      return forwarded.split(',')[0].trim();
-    }
     return req.ip || req.socket?.remoteAddress || 'unknown';
   }
 

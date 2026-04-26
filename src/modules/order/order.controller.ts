@@ -181,14 +181,20 @@ export class OrderController {
   @Post(':orderId/update-payment-status')
   @StrictThrottle()
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.RIDER)
   @InvalidateCache('orders:single::params.orderId')
   async updatePaymentStatus(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: UserRole,
     @Param('orderId', ParseUUIDPipe) orderId: string,
     @Body() dto: UpdatePaymentStatusDto,
   ) {
     const order = await this.orderService.updatePaymentStatus(
       orderId,
       dto.paymentStatus,
+      userId,
+      userRole,
     );
     return {
       message: 'Payment status updated successfully',

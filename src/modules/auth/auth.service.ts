@@ -333,8 +333,20 @@ export class AuthService {
 
       const newAccessToken = this.jwtService.sign(payload);
 
+      const { nonce: newRefreshToken, hash: newTokenHash } =
+        generateNonceWithHash(32);
+
+      // Rotate refresh token to prevent replay.
+      await this.refreshTokenRepo.delete(tokenHash);
+      await this.refreshTokenRepo.create({
+        userId: safeUser.id,
+        tokenHash: newTokenHash,
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      });
+
       return {
         token: newAccessToken,
+        refreshToken: newRefreshToken,
         user: safeUser,
       };
     } catch (error) {
@@ -347,28 +359,24 @@ export class AuthService {
 
   async forgotPassword(dto: ForgotPasswordInput) {
     const strategy = this.contactStrategyFactory.resolve(dto.identifierType);
-
-    const user = await strategy.findExistingUser(dto);
-
-    if (!user) {
-      throw new BadRequestException('User not found with this identifier');
-    }
-
     const identifier = strategy.getIdentifier(dto);
 
-    const nonce = await this.authCacheRepo.createPasswordResetNonce(user.id);
+    const user = await strategy.findExistingUser(dto);
+    if (user) {
+      const nonce = await this.authCacheRepo.createPasswordResetNonce(user.id);
 
-    const otp = this.otpService.generate(nonce);
+      const otp = this.otpService.generate(nonce);
 
-    await strategy.sendPasswordReset(user, otp);
+      await strategy.sendPasswordReset(user, otp);
 
-    // 📬 Send notification about password reset initiation
-    await this.notificationService.sendNotification(
-      [user.id],
-      '🔑 Password Reset Initiated',
-      'You requested a password reset. Check your email or phone for an OTP to proceed. This code expires in 10 minutes.',
-      NotificationType.INFO,
-    );
+      // 📬 Send notification about password reset initiation
+      await this.notificationService.sendNotification(
+        [user.id],
+        '🔑 Password Reset Initiated',
+        'You requested a password reset. Check your email or phone for an OTP to proceed. This code expires in 10 minutes.',
+        NotificationType.INFO,
+      );
+    }
 
     return { identifier };
   }

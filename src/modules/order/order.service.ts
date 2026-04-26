@@ -456,19 +456,32 @@ export class OrderService {
     return this.cartService.getCart(userId);
   }
 
-  async updatePaymentStatus(orderId: string, paymentStatus: PaymentStatus) {
+  async updatePaymentStatus(
+    orderId: string,
+    paymentStatus: PaymentStatus,
+    userId: string,
+    userRole: UserRole,
+  ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       select: {
         id: true,
         paymentStatus: true,
         userId: true,
+        assignedRiderId: true,
         orderNumber: true,
       },
     });
 
     if (!order) {
       throw new NotFoundException('Order not found');
+    }
+
+    // Only admins can update any order; riders can update only their assigned orders.
+    if (userRole === UserRole.RIDER && order.assignedRiderId !== userId) {
+      throw new BadRequestException(
+        'Riders can only update payment status for their own orders',
+      );
     }
 
     const updated = await this.prisma.order.update({
