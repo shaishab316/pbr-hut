@@ -16,6 +16,7 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { CacheInterceptor } from './common/interceptors/cache.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { BasicAuthMiddleware } from './common/middlewares/basic-auth.middleware';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -63,6 +64,21 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1', {
     exclude: ['health', 'queues', 'docs', 'docs-json', 'docs-yaml'],
   });
+
+  //? protect /docs and /queues with basic auth
+  logger.log('🔐 Protecting /docs and /queues endpoints with basic auth');
+  const docsUsername = config.get('DOCS_USERNAME', { infer: true });
+  const docsPassword = config.get('DOCS_PASSWORD', { infer: true });
+  const queuesUsername = config.get('QUEUES_USERNAME', { infer: true });
+  const queuesPassword = config.get('QUEUES_PASSWORD', { infer: true });
+
+  const docsAuth = new BasicAuthMiddleware(docsUsername, docsPassword);
+  const queuesAuth = new BasicAuthMiddleware(queuesUsername, queuesPassword);
+
+  app.use('/docs', (req, res, next) => docsAuth.use(req, res, next));
+  app.use('/docs-json', (req, res, next) => docsAuth.use(req, res, next));
+  app.use('/docs-yaml', (req, res, next) => docsAuth.use(req, res, next));
+  app.use('/queues', (req, res, next) => queuesAuth.use(req, res, next));
 
   //? log raw request body for debugging
   app.use((req: Request, _res: Response, next: NextFunction) => {

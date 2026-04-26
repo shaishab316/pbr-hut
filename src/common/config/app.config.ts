@@ -142,6 +142,24 @@ const envSchema = z.object({
     .string()
     .min(1, 'ONESIGNAL_APP_ID is required')
     .describe('OneSignal App ID'),
+
+  // Protected Routes (Docs & Queues)
+  DOCS_USERNAME: z
+    .string()
+    .min(1, 'DOCS_USERNAME is required for protecting /docs')
+    .describe('Username for API documentation access'),
+  DOCS_PASSWORD: z
+    .string()
+    .min(6, 'DOCS_PASSWORD must be at least 6 characters')
+    .describe('Password for API documentation access'),
+  QUEUES_USERNAME: z
+    .string()
+    .min(1, 'QUEUES_USERNAME is required for protecting /queues')
+    .describe('Username for Bull Board queue admin access'),
+  QUEUES_PASSWORD: z
+    .string()
+    .min(6, 'QUEUES_PASSWORD must be at least 6 characters')
+    .describe('Password for Bull Board queue admin access'),
 });
 
 export const validate = (config: Record<string, unknown>) => {
