@@ -65,3 +65,5 @@ docs/.vitepress/dist
 
 # Keep example
 !.env.example
+
+k3s
