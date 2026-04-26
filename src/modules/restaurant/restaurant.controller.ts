@@ -8,12 +8,17 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import {
+  RelaxedThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 @Controller('restaurant')
 export class RestaurantController {
   constructor(private readonly restaurantService: RestaurantService) {}
 
   @Get('/primary')
+  @RelaxedThrottle()
   @CacheKey('primary-restaurant')
   @CacheTTL(3600) //? 1 hour
   async getPrimary() {
@@ -26,6 +31,7 @@ export class RestaurantController {
   }
 
   @Post('/update-primary')
+  @StrictThrottle()
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
   @InvalidateCache('primary-restaurant')

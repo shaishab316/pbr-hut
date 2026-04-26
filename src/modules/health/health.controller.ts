@@ -8,6 +8,7 @@ import {
 } from '@nestjs/terminus';
 import { PrismaHealthIndicator } from './prisma.health';
 import { RedisService } from '../redis/redis.service';
+import { SkipThrottle } from '@/common/decorators/throttle.decorator';
 import * as path from 'node:path';
 
 @Controller('health')
@@ -22,6 +23,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @SkipThrottle()
   @HealthCheck()
   check() {
     return this.health.check([

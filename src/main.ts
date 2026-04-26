@@ -15,12 +15,18 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { CacheInterceptor } from './common/interceptors/cache.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   logger.log('🚀 Starting application bootstrap...');
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  //? trust proxy for correct client IP detection behind proxies (e.g., in production)
+  app.set('trust proxy', 'loopback');
+
+  //? use Winston for logging
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   const config = app.get(ConfigService<Env, true>);

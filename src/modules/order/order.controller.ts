@@ -32,6 +32,10 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import {
+  MediumThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 @ApiTags('Orders')
 @UseGuards(JwtGuard)
@@ -40,6 +44,7 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @ApiCreateOrder()
+  @MediumThrottle()
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @InvalidateCache('orders:active::user.id')
@@ -106,6 +111,7 @@ export class OrderController {
   }
 
   @ApiCancelOrder()
+  @MediumThrottle()
   @Post(':orderId/cancel')
   @HttpCode(HttpStatus.OK)
   @InvalidateCache(
@@ -121,6 +127,7 @@ export class OrderController {
   }
 
   @ApiReorder()
+  @MediumThrottle()
   @Post(':orderId/reorder')
   @HttpCode(HttpStatus.OK)
   @InvalidateCache('orders:active::user.id', 'orders:single::params.orderId')
@@ -132,6 +139,7 @@ export class OrderController {
   }
 
   @Post(':orderId/mark-as-paid')
+  @StrictThrottle()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.RIDER)
@@ -149,6 +157,7 @@ export class OrderController {
   }
 
   @Post(':orderId/mark-as-unpaid')
+  @StrictThrottle()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.RIDER)
@@ -170,6 +179,7 @@ export class OrderController {
   }
 
   @Post(':orderId/update-payment-status')
+  @StrictThrottle()
   @HttpCode(HttpStatus.OK)
   @InvalidateCache('orders:single::params.orderId')
   async updatePaymentStatus(

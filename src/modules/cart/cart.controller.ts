@@ -30,6 +30,7 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import { MediumThrottle } from '@/common/decorators/throttle.decorator';
 
 @ApiTags('Cart')
 @UseGuards(JwtGuard)
@@ -70,6 +71,7 @@ export class CartController {
   }
 
   @ApiAddCartItem()
+  @MediumThrottle()
   @Post('items')
   @HttpCode(HttpStatus.CREATED)
   @InvalidateCache('cart:user::user.id')
@@ -78,6 +80,7 @@ export class CartController {
   }
 
   @ApiUpdateCartItem()
+  @MediumThrottle()
   @Patch('items/:cartItemId')
   @InvalidateCache('cart:user::user.id')
   updateItem(
@@ -89,6 +92,7 @@ export class CartController {
   }
 
   @ApiRemoveCartItem()
+  @MediumThrottle()
   @Delete('items/:cartItemId')
   @HttpCode(HttpStatus.OK)
   @InvalidateCache('cart:user::user.id')

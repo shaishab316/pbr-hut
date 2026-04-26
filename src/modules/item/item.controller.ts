@@ -37,6 +37,10 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import {
+  RelaxedThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 const ItemUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -57,6 +61,7 @@ export class ItemController {
   // ─── Public ───────────────────────────────────────────────────────────────
 
   @Get()
+  @RelaxedThrottle()
   @ApiGetItems()
   @CacheKey('items:all:')
   @CacheTTL(120)
@@ -78,6 +83,7 @@ export class ItemController {
   }
 
   @Get('popular')
+  @RelaxedThrottle()
   @ApiGetItems()
   @CacheKey('items:popular')
   @CacheTTL(120)
@@ -151,6 +157,7 @@ export class ItemController {
   // ─── Admin ────────────────────────────────────────────────────────────────
 
   @Post()
+  @StrictThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateItem()
   @UseInterceptors(ItemUploadInterceptor)
@@ -180,6 +187,7 @@ export class ItemController {
   }
 
   @Patch(':id')
+  @StrictThrottle()
   @ApiUpdateItem()
   @UseInterceptors(ItemUploadInterceptor)
   @UseGuards(JwtGuard, RolesGuard)
@@ -205,6 +213,7 @@ export class ItemController {
   }
 
   @Delete(':id')
+  @StrictThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiDeleteItem()
   @UseGuards(JwtGuard, RolesGuard)

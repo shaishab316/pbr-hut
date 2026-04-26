@@ -28,6 +28,10 @@ import {
   ApiUpdateCategory,
   ApiUpdateSubCategory,
 } from './docs/category.docs';
+import {
+  RelaxedThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -36,6 +40,7 @@ export class CategoryController {
 
   // Category
   @Get()
+  @RelaxedThrottle()
   @ApiGetCategories()
   @CacheKey('categories:all:')
   @CacheTTL(300)
@@ -44,6 +49,7 @@ export class CategoryController {
   }
 
   @Post()
+  @StrictThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateCategory()
   @InvalidateCache('categories:all:*')
@@ -52,6 +58,7 @@ export class CategoryController {
   }
 
   @Patch(':id')
+  @StrictThrottle()
   @ApiUpdateCategory()
   @InvalidateCache('categories:all:*')
   update(@Param('id') id: string, @Body() dto: CreateCategoryDto) {
@@ -59,6 +66,7 @@ export class CategoryController {
   }
 
   @Delete(':id')
+  @StrictThrottle()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteCategory()
   @InvalidateCache('categories:all:*')
@@ -68,6 +76,7 @@ export class CategoryController {
 
   // SubCategory
   @Get(':id/sub-categories')
+  @RelaxedThrottle()
   @ApiGetSubCategories()
   @CacheKey('categories:subcategories::params.id')
   @CacheTTL(300)
@@ -76,6 +85,7 @@ export class CategoryController {
   }
 
   @Post(':id/sub-categories')
+  @StrictThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateSubCategory()
   @InvalidateCache('categories:all:*', 'categories:subcategories::params.id')
@@ -87,6 +97,7 @@ export class CategoryController {
   }
 
   @Patch('sub-categories/:subId')
+  @StrictThrottle()
   @ApiUpdateSubCategory()
   @InvalidateCache('categories:all:*', 'categories:subcategories:*')
   updateSub(@Param('subId') subId: string, @Body() dto: CreateSubCategoryDto) {
@@ -94,6 +105,7 @@ export class CategoryController {
   }
 
   @Delete('sub-categories/:subId')
+  @StrictThrottle()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteSubCategory()
   @InvalidateCache('categories:all:*', 'categories:subcategories:*')

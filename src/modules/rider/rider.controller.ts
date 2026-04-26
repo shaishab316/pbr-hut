@@ -24,6 +24,10 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import {
+  MediumThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 const NidUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -51,6 +55,7 @@ export class RiderController {
   }
 
   @ApiUpdateRiderLocation()
+  @MediumThrottle()
   @UseGuards(RolesGuard)
   @Roles(UserRole.RIDER)
   @Patch('location')
@@ -77,6 +82,7 @@ export class RiderController {
   }
 
   @ApiUploadNid()
+  @StrictThrottle()
   @Post('nid')
   @UseInterceptors(NidUploadInterceptor)
   @InvalidateCache('rider:*')

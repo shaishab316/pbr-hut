@@ -34,6 +34,7 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import { MediumThrottle } from '@/common/decorators/throttle.decorator';
 
 @ApiTags('Rider · Orders')
 @UseGuards(JwtGuard, RolesGuard)
@@ -108,6 +109,7 @@ export class RiderOrderController {
   }
 
   @ApiRiderAcceptOrder()
+  @MediumThrottle()
   @Post(':orderId/accept')
   @HttpCode(HttpStatus.OK)
   @InvalidateCache(
@@ -128,6 +130,7 @@ export class RiderOrderController {
   }
 
   @ApiRiderDeliverOrder()
+  @MediumThrottle()
   @Post(':orderId/deliver')
   @HttpCode(HttpStatus.OK)
   @InvalidateCache(
@@ -153,6 +156,7 @@ export class RiderOrderController {
   }
 
   @ApiRiderAddTime()
+  @MediumThrottle()
   @Post(':orderId/add-time')
   @HttpCode(HttpStatus.OK)
   @InvalidateCache('rider-orders:single::params.orderId')
@@ -165,6 +169,7 @@ export class RiderOrderController {
   }
 
   @ApiRiderDeclineOrder()
+  @MediumThrottle()
   @Post(':orderId/decline')
   @HttpCode(HttpStatus.OK)
   @InvalidateCache('rider-orders:nearby::user.id')

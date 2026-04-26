@@ -25,6 +25,10 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import {
+  MediumThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 const ProfilePictureUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -56,6 +60,7 @@ export class UserController {
   }
 
   @Post('change-password')
+  @StrictThrottle()
   @InvalidateCache('user:me::user.id')
   async changePassword(
     @CurrentUser('id') userId: string,
@@ -69,6 +74,7 @@ export class UserController {
   }
 
   @Patch('update-profile')
+  @MediumThrottle()
   @UseInterceptors(ProfilePictureUploadInterceptor)
   @InvalidateCache('user:me::user.id')
   async updateProfile(

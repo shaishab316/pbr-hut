@@ -24,6 +24,10 @@ import {
   CacheTTL,
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
+import {
+  RelaxedThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 const AdsMediaUploadInterceptor = createFileUploadInterceptor({
   fields: [
@@ -41,6 +45,7 @@ export class AdsController {
   constructor(private readonly adsService: AdsService) {}
 
   @Post()
+  @StrictThrottle()
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN')
   @UseInterceptors(AdsMediaUploadInterceptor)
@@ -77,6 +82,7 @@ export class AdsController {
   }
 
   @Get()
+  @RelaxedThrottle()
   @CacheKey('ads:all:')
   @CacheTTL(120)
   async getAds() {
@@ -88,6 +94,7 @@ export class AdsController {
   }
 
   @Get(':id')
+  @RelaxedThrottle()
   @CacheKey('ads:single::params.id')
   @CacheTTL(120)
   async getAdsById(@Param('id') adsId: string) {

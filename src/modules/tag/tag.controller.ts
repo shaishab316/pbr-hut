@@ -23,6 +23,10 @@ import {
   ApiGetTags,
   ApiUpdateTag,
 } from './docs/tag.docs';
+import {
+  RelaxedThrottle,
+  StrictThrottle,
+} from '@/common/decorators/throttle.decorator';
 
 @ApiTags('Tags')
 @Controller('tags')
@@ -30,6 +34,7 @@ export class TagController {
   constructor(private readonly tagService: TagService) {}
 
   @Get()
+  @RelaxedThrottle()
   @ApiGetTags()
   @CacheKey('tags:all:')
   @CacheTTL(300)
@@ -38,6 +43,7 @@ export class TagController {
   }
 
   @Post()
+  @StrictThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateTag()
   @InvalidateCache('tags:all:*')
@@ -46,6 +52,7 @@ export class TagController {
   }
 
   @Patch(':id')
+  @StrictThrottle()
   @ApiUpdateTag()
   @InvalidateCache('tags:all:*')
   update(@Param('id') id: string, @Body() dto: CreateTagDto) {
@@ -53,6 +60,7 @@ export class TagController {
   }
 
   @Delete(':id')
+  @StrictThrottle()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteTag()
   @InvalidateCache('tags:all:*')

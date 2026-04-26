@@ -1,9 +1,11 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import {
   validate as configValidate,
   type Env,
 } from './common/config/app.config';
+import { getThrottlerConfig } from './common/config/throttler.config';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { RedisModule } from './modules/redis/redis.module';
@@ -33,6 +35,8 @@ import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
 import { NotificationModule } from './modules/notification/notification.module';
 import { HealthModule } from './modules/health/health.module';
+import { CustomThrottlerGuard } from './common/guards/throttler.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -40,6 +44,7 @@ import { HealthModule } from './modules/health/health.module';
       isGlobal: true,
       validate: configValidate,
     }),
+    ThrottlerModule.forRoot(getThrottlerConfig()),
     WinstonModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => ({
@@ -96,6 +101,7 @@ import { HealthModule } from './modules/health/health.module';
     SocketModule,
     HealthModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

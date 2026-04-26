@@ -29,6 +29,7 @@ import {
   InvalidateCache,
 } from '@/common/decorators/cache.decorator';
 import { SocketGateway } from '@/modules/socket/socket.gateway';
+import { StrictThrottle } from '@/common/decorators/throttle.decorator';
 
 @ApiTags('Admin — Dashboard')
 @ApiBearerAuth()
@@ -105,6 +106,7 @@ export class AdminDashboardController {
   }
 
   @Post('riders/nid/approve')
+  @StrictThrottle()
   @InvalidateCache('admin:riders:all:*')
   @HttpCode(200)
   @ApiOperation({ summary: 'Approve rider NID' })
@@ -121,6 +123,7 @@ export class AdminDashboardController {
   }
 
   @Post('riders/nid/decline')
+  @StrictThrottle()
   @InvalidateCache('admin:riders:all:*')
   @HttpCode(200)
   @ApiOperation({ summary: 'Decline rider NID' })

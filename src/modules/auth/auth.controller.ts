@@ -25,12 +25,14 @@ import {
 } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RiderSignUpDto } from './dto/rider-sign-up.dto';
+import { AuthThrottle } from '@/common/decorators/throttle.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @ApiCustomerSignUp()
+  @AuthThrottle()
   @Post('register-customer')
   @HttpCode(200)
   async signUp(@Body() dto: SignUpDto) {
@@ -40,6 +42,7 @@ export class AuthController {
   }
 
   @ApiRiderSignUp()
+  @AuthThrottle()
   @Post('register-rider')
   @HttpCode(200)
   async riderSignUp(@Body() dto: RiderSignUpDto) {
@@ -49,6 +52,7 @@ export class AuthController {
   }
 
   @ApiVerifyOtp()
+  @AuthThrottle()
   @HttpCode(200)
   @Post('verify-otp')
   async verifyOtp(@Body() dto: VerifyOtpDto) {
@@ -69,6 +73,7 @@ export class AuthController {
   }
 
   @ApiResendOtp()
+  @AuthThrottle()
   @Post('resend-otp')
   @HttpCode(200)
   async resendOtp(@Body() dto: ResendOtpDto) {
@@ -78,6 +83,7 @@ export class AuthController {
   }
 
   @ApiLogin()
+  @AuthThrottle()
   @Post('login')
   @HttpCode(200)
   async login(@Body() dto: LoginDto) {
@@ -87,6 +93,7 @@ export class AuthController {
   }
 
   @ApiForgotPassword()
+  @AuthThrottle()
   @Post('forgot-password')
   @HttpCode(200)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -98,6 +105,7 @@ export class AuthController {
   }
 
   @ApiResetPassword()
+  @AuthThrottle()
   @Post('reset-password')
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
@@ -107,6 +115,7 @@ export class AuthController {
   }
 
   @ApiRefreshToken()
+  @AuthThrottle()
   @Post('refresh-token')
   @HttpCode(200)
   async refreshToken(@Body() dto: RefreshTokenDto) {

@@ -14,6 +14,7 @@ import { CurrentUser } from '@/common/decorators';
 import { JwtGuard } from '@/common/guards';
 import { UserNotificationService } from './user-notification.service';
 import { QueryNotificationsDto } from './dto/query-notifications.dto';
+import { MediumThrottle } from '@/common/decorators/throttle.decorator';
 
 @ApiTags('Notifications')
 @UseGuards(JwtGuard)
@@ -50,6 +51,7 @@ export class NotificationController {
    * Mark a notification as read
    */
   @Post(':notificationId/read')
+  @MediumThrottle()
   @HttpCode(HttpStatus.OK)
   async markAsRead(
     @CurrentUser('id') userId: string,
@@ -71,6 +73,7 @@ export class NotificationController {
    * Delete a single notification
    */
   @Delete(':notificationId')
+  @MediumThrottle()
   @HttpCode(HttpStatus.OK)
   async deleteNotification(
     @CurrentUser('id') userId: string,
@@ -92,6 +95,7 @@ export class NotificationController {
    * Delete all notifications for the user
    */
   @Delete()
+  @MediumThrottle()
   @HttpCode(HttpStatus.OK)
   async deleteAllNotifications(@CurrentUser('id') userId: string) {
     const result =
