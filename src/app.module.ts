@@ -36,6 +36,7 @@ import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { MailModule } from './infra/mail/mail.module';
 import { MAIL_QUEUE } from './infra/mail/mail.constants';
+import { NOTIFICATION_QUEUE } from './infra/notification/notification.constants';
 
 @Module({
   imports: [
@@ -80,10 +81,16 @@ import { MAIL_QUEUE } from './infra/mail/mail.constants';
       route: '/queues',
       adapter: ExpressAdapter,
     }),
-    BullBoardModule.forFeature({
-      name: MAIL_QUEUE,
-      adapter: BullMQAdapter,
-    }),
+    BullBoardModule.forFeature(
+      {
+        name: MAIL_QUEUE,
+        adapter: BullMQAdapter,
+      },
+      {
+        name: NOTIFICATION_QUEUE,
+        adapter: BullMQAdapter,
+      },
+    ),
     AuthModule,
     UserModule,
     OtpModule,

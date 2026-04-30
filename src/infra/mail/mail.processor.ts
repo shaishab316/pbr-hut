@@ -3,12 +3,7 @@ import { Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Job } from 'bullmq';
 import { MAIL_QUEUE } from './mail.constants';
-
-export interface SendMailData {
-  email: string;
-  subject: string;
-  body: string;
-}
+import { SendMailData } from './mail.interface';
 
 @Processor(MAIL_QUEUE)
 export class MailProcessor extends WorkerHost {

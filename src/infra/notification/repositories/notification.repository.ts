@@ -77,8 +77,8 @@ export class NotificationRepository {
     });
   }
 
-  async existsByJobId(jobId: string): Promise<boolean> {
-    const count = await this.prisma.notification.count({ where: { jobId } });
+  async existsById(id: string): Promise<boolean> {
+    const count = await this.prisma.notification.count({ where: { id } });
     return count > 0;
   }
 }

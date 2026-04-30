@@ -34,8 +34,8 @@ export class NotificationProcessor extends WorkerHost {
         `📨 [Job: ${job.id}] Sending notification to ${job.data.userIds.length} user(s)`,
       );
 
-      const alreadyProcessed = await this.notificationRepo.existsByJobId(
-        job.data.jobId,
+      const alreadyProcessed = await this.notificationRepo.existsById(
+        job.data.id,
       );
 
       if (!alreadyProcessed) {
@@ -45,7 +45,7 @@ export class NotificationProcessor extends WorkerHost {
             title: job.data.title,
             message: job.data.message,
             type: job.data.type,
-            jobId: job.data.jobId,
+            id: job.data.id,
           })),
         );
       }

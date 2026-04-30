@@ -5,7 +5,7 @@ export interface NotificationSendData {
   message: string;
   title: string;
   type: NotificationType;
-  jobId: string;
+  id: string;
 }
 
 export interface INotificationService {
