@@ -7,16 +7,14 @@ import {
 } from './common/config/app.config';
 import { getThrottlerConfig } from './common/config/throttler.config';
 import { PrismaModule } from './infra/prisma/prisma.module';
-import { UploadModule } from './modules/upload/upload.module';
-import { RedisModule } from './modules/redis/redis.module';
+import { UploadModule } from './infra/upload/upload.module';
+import { RedisModule } from './infra/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
-import { MailModule } from '@/modules/mail/mail.module';
 import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
-import { MAIL_QUEUE } from '@/modules/mail/mail.constants';
 import { LoggerMiddleware } from './common/middlewares';
 import { OtpModule } from './modules/otp/otp.module';
 import { RiderModule } from './modules/rider/rider.module';
@@ -28,15 +26,16 @@ import { OrderModule } from './modules/order/order.module';
 import { RestaurantModule } from './modules/restaurant/restaurant.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AdsModule } from './modules/ads/ads.module';
-import { ScheduleModule } from '@nestjs/schedule';
 import { WinstonModule } from 'nest-winston';
 import { SocketModule } from './modules/socket/socket.module';
 import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
-import { NotificationModule } from './modules/notification/notification.module';
+import { NotificationModule } from './infra/notification/notification.module';
 import { HealthModule } from './modules/health/health.module';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { APP_GUARD } from '@nestjs/core';
+import { MailModule } from './infra/mail/mail.module';
+import { MAIL_QUEUE } from './infra/mail/mail.constants';
 
 @Module({
   imports: [
@@ -63,7 +62,6 @@ import { APP_GUARD } from '@nestjs/core';
         ],
       }),
     }),
-    ScheduleModule.forRoot(),
     SocketModule,
     PrismaModule,
     UploadModule,

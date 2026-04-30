@@ -1,4 +1,4 @@
-import { RedisService } from '@/modules/redis/redis.service';
+import { RedisService } from '@/infra/redis/redis.service';
 import {
   CallHandler,
   ExecutionContext,

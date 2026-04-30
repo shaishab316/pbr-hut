@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { UserRole } from '@prisma/client';
 
-import { RedisService } from '@/modules/redis/redis.service';
+import { RedisService } from '@/infra/redis/redis.service';
 import { AuthCacheRepository } from './auth.cache.repository';
 
 describe('AuthCacheRepository', () => {

@@ -17,7 +17,7 @@ import {
   UpdateProfileDto,
   updateProfileSchema,
 } from './dto/update-profile.dto';
-import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
+import { createFileUploadInterceptor } from '../../infra/upload/interceptors/file-upload.interceptor';
 import { safeJsonParse } from '@/common/utils/safeJsonParse';
 import { ZodValidationException } from 'nestjs-zod';
 import {

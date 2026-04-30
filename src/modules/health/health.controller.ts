@@ -7,7 +7,7 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import { PrismaHealthIndicator } from './prisma.health';
-import { RedisService } from '../redis/redis.service';
+import { RedisService } from '../../infra/redis/redis.service';
 import { SkipThrottle } from '@/common/decorators/throttle.decorator';
 import * as path from 'node:path';
 

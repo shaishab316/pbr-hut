@@ -24,7 +24,7 @@ import {
   OrderRepository,
   orderDetailInclude,
 } from './repositories/order.repository';
-import { NotificationService } from '@/modules/notification/notification.service';
+import { NotificationService } from '@/infra/notification/notification.service';
 import type { CreateOrderInput } from './dto/create-order.dto';
 import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';
 

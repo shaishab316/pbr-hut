@@ -1,6 +1,5 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
-import { NotificationProcessor } from './notification.processor';
 import { OneSignalService } from './onesignal.service';
 import {
   NOTIFICATION_QUEUE,
@@ -16,17 +15,16 @@ import { NotificationService } from './notification.service';
   imports: [BullModule.registerQueue({ name: NOTIFICATION_QUEUE })],
   controllers: [NotificationController],
   providers: [
-    NotificationProcessor,
     UserNotificationService,
     NotificationService,
     NotificationRepository,
     { provide: NOTIFICATION_SERVICE, useClass: OneSignalService },
   ],
   exports: [
-    BullModule,
     UserNotificationService,
     NotificationRepository,
     NotificationService,
+    { provide: NOTIFICATION_SERVICE, useClass: OneSignalService },
   ],
 })
 export class NotificationModule {}

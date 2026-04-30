@@ -33,7 +33,7 @@ import { UserRole, NotificationType } from '@prisma/client';
 import { RiderRepository } from '../rider/repositories/rider.repository';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { NotificationService } from '@/modules/notification/notification.service';
+import { NotificationService } from '@/infra/notification/notification.service';
 
 export type ResetPasswordTokenPayload = {
   sub: string; // userId

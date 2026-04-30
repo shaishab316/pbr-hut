@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { RestaurantController } from './restaurant.controller';
 import { RestaurantService } from './restaurant.service';
 import { RestaurantCacheRepository } from './repositories/restaurant.cache.repository';
-import { RedisModule } from '../redis/redis.module';
+import { RedisModule } from '../../infra/redis/redis.module';
 import { RestaurantRepository } from './repositories/restaurant.repository';
 
 @Module({

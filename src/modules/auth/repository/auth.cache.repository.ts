@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { type Prisma, UserRole } from '@prisma/client';
 
-import { RedisService } from '@/modules/redis/redis.service';
+import { RedisService } from '@/infra/redis/redis.service';
 import type { SignUpInput } from '../dto/sign-up.dto';
 
 /**

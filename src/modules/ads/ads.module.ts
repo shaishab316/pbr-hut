@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AdsController } from './ads.controller';
 import { AdsService } from './ads.service';
 import { AdsRepository } from './repositories/ads.repository';
-import { UploadModule } from '../upload/upload.module';
+import { UploadModule } from '../../infra/upload/upload.module';
 import { AdsCron } from './ads.cron';
 
 @Module({

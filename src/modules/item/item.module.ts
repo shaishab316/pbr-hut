@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { ItemService } from './item.service';
 import { ItemController } from './item.controller';
 import { PrismaModule } from '@/infra/prisma/prisma.module';
-import { UploadModule } from '../upload/upload.module';
+import { UploadModule } from '../../infra/upload/upload.module';
 import { ItemRepository } from './repositories/item.repository';
-import { RedisModule } from '../redis/redis.module';
+import { RedisModule } from '../../infra/redis/redis.module';
 
 @Module({
   imports: [PrismaModule, UploadModule, RedisModule],

@@ -3,7 +3,7 @@ import { UserRepository } from './repositories/user.repository';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { RiderModule } from '../rider/rider.module';
-import { UploadModule } from '../upload/upload.module';
+import { UploadModule } from '../../infra/upload/upload.module';
 
 @Module({
   imports: [RiderModule, UploadModule],

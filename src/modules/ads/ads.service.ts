@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AdsRepository } from './repositories/ads.repository';
 import { CreateAdsDto } from './dto/create-ads.dto';
-import { CloudinaryService } from '../upload/cloudinary.service';
+import { CloudinaryService } from '../../infra/upload/cloudinary.service';
 import { UpdateAdsDto } from './dto/update-ads.dto';
-import { RedisService } from '../redis/redis.service';
+import { RedisService } from '../../infra/redis/redis.service';
 
 @Injectable()
 export class AdsService {

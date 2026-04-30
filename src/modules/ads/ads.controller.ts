@@ -11,7 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
+import { createFileUploadInterceptor } from '../../infra/upload/interceptors/file-upload.interceptor';
 import { ZodValidationException } from 'nestjs-zod';
 import { safeJsonParse } from '@/common/utils/safeJsonParse';
 import { AdsService } from './ads.service';

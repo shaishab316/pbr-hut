@@ -18,7 +18,7 @@ import {
   orderDetailInclude,
   type OrderWithDetailPayload,
 } from './repositories/order.repository';
-import { NotificationService } from '@/modules/notification/notification.service';
+import { NotificationService } from '@/infra/notification/notification.service';
 import type { NearbyRiderOrdersInput } from './dto/nearby-rider-orders.dto';
 import type { DeliverOrderInput } from './dto/deliver-order.dto';
 import type { QueryOrderHistoryInput } from './dto/query-order-history.dto';

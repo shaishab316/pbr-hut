@@ -15,7 +15,7 @@ import { UserRole } from '@prisma/client';
 import { RiderService } from './rider.service';
 import { CurrentUser, Roles } from '@/common/decorators';
 import { JwtGuard, RolesGuard } from '@/common/guards';
-import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
+import { createFileUploadInterceptor } from '../../infra/upload/interceptors/file-upload.interceptor';
 import type { SafeUser } from '@/common/types/safe-user.type';
 import { UpdateRiderLocationDto } from './dto/update-rider-location.dto';
 import { ApiUpdateRiderLocation, ApiUploadNid } from './docs/rider.docs';

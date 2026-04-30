@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CreateItemDto } from './dto/create-item.dto';
 import type { UpdateItemDto } from './dto/update-item.dto';
 import type { QueryItemsDto } from './dto/query-items.dto';
-import { CloudinaryService } from '../upload/cloudinary.service';
+import { CloudinaryService } from '../../infra/upload/cloudinary.service';
 import { ItemRepository } from './repositories/item.repository';
-import { RedisService } from '../redis/redis.service';
+import { RedisService } from '../../infra/redis/redis.service';
 
 @Injectable()
 export class ItemService {

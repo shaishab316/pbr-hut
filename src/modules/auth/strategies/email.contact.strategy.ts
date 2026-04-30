@@ -1,7 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { MAIL_QUEUE } from '@/modules/mail/mail.constants';
 import { SafeUser } from '@/common/types/safe-user.type';
 import { UserRepository } from '../../user/repositories/user.repository';
 import {
@@ -12,7 +9,7 @@ import type {
   UnverifiedRider,
   UnverifiedUser,
 } from '../repository/auth.cache.repository';
-import type { SendMailData } from '@/modules/mail/mail.processor';
+import { MailService } from '@/infra/mail/mail.service';
 
 type EmailInput = NarrowLoginInput<'email'>;
 
@@ -22,7 +19,7 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
 
   constructor(
     private readonly userRepo: UserRepository,
-    @InjectQueue(MAIL_QUEUE) private readonly queue: Queue,
+    private readonly mailService: MailService,
   ) {}
 
   getIdentifier(dto: EmailInput): string {
@@ -49,36 +46,18 @@ export class EmailContactStrategy implements IContactStrategy<'email'> {
     user: T,
     otp: string,
   ): Promise<void> {
-    await this.queue.add(
-      MAIL_QUEUE,
-      {
-        email: user.email!,
-        subject: "Welcome to PBR Hut! Here's your verification code",
-        body: `Hi ${user.name},\n\nThank you for signing up for PBR Hut! Your verification code is: ${otp}\n\nPlease enter this code in the app to verify your email address and complete your registration.\n\nIf you did not sign up for PBR Hut, please ignore this email.\n\nBest regards,\nThe PBR Hut Team`,
-      } satisfies SendMailData,
-      {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 5000 },
-        removeOnComplete: true,
-        removeOnFail: { age: 15 * 60 }, //? 15 minutes
-      },
-    );
+    await this.mailService.sendMail({
+      email: user.email!,
+      subject: "Welcome to PBR Hut! Here's your verification code",
+      body: `Hi ${user.name},\n\nThank you for signing up for PBR Hut! Your verification code is: ${otp}\n\nPlease enter this code in the app to verify your email address and complete your registration.\n\nIf you did not sign up for PBR Hut, please ignore this email.\n\nBest regards,\nThe PBR Hut Team`,
+    });
   }
 
   async sendPasswordReset(user: SafeUser, otp: string): Promise<void> {
-    await this.queue.add(
-      MAIL_QUEUE,
-      {
-        email: user.email!,
-        subject: 'PBR Hut Password Reset Request',
-        body: `Hi ${user.name},\n\nWe received a request to reset your password for your PBR Hut account. Your password reset code is: ${otp}\n\nPlease enter this code in the app to reset your password.\n\nIf you did not request a password reset, please ignore this email.\n\nBest regards,\nThe PBR Hut Team`,
-      } satisfies SendMailData,
-      {
-        attempts: 2,
-        backoff: { type: 'exponential', delay: 5000 },
-        removeOnComplete: true,
-        removeOnFail: { age: 10 * 60 }, //? 10 minutes
-      },
-    );
+    await this.mailService.sendMail({
+      email: user.email!,
+      subject: 'PBR Hut Password Reset Request',
+      body: `Hi ${user.name},\n\nWe received a request to reset your password for your PBR Hut account. Your password reset code is: ${otp}\n\nPlease enter this code in the app to reset your password.\n\nIf you did not request a password reset, please ignore this email.\n\nBest regards,\nThe PBR Hut Team`,
+    });
   }
 }

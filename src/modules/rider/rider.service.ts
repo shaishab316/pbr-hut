@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
-import { CloudinaryService } from '@/modules/upload/cloudinary.service';
+import { CloudinaryService } from '@/infra/upload/cloudinary.service';
 import { RiderRepository } from './repositories/rider.repository';
 import type { UpdateRiderLocationInput } from './dto/update-rider-location.dto';
 

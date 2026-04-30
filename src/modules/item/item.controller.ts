@@ -19,7 +19,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { ItemService } from './item.service';
 import { CreateItemDto, CreateItemSchema } from './dto/create-item.dto';
 import { UpdateItemDto, UpdateItemSchema } from './dto/update-item.dto';
-import { createFileUploadInterceptor } from '../upload/interceptors/file-upload.interceptor';
+import { createFileUploadInterceptor } from '../../infra/upload/interceptors/file-upload.interceptor';
 import {
   ApiCreateItem,
   ApiGetItems,

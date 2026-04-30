@@ -2,9 +2,9 @@ import { Global, Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
-import { MailProcessor } from './mail.processor';
 import { MAIL_QUEUE } from './mail.constants';
 import type { Env } from '../../common/config/app.config';
+import { MailService } from './mail.service';
 
 @Global()
 @Module({
@@ -27,7 +27,7 @@ import type { Env } from '../../common/config/app.config';
     }),
     BullModule.registerQueue({ name: MAIL_QUEUE }),
   ],
-  providers: [MailProcessor],
-  exports: [BullModule],
+  providers: [MailService],
+  exports: [MailService],
 })
 export class MailModule {}

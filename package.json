@@ -24,12 +24,13 @@
     "pnpm": ">=10.20.0"
   },
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && nest build worker",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
+    "start:prod:worker": "node dist/src/worker/index",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",

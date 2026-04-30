@@ -5,8 +5,8 @@ import { RiderRepository } from '../rider/repositories/rider.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { comparePassword, hashPassword } from '@/common/helpers';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { CloudinaryService } from '../upload/cloudinary.service';
-import { NotificationService } from '@/modules/notification/notification.service';
+import { CloudinaryService } from '../../infra/upload/cloudinary.service';
+import { NotificationService } from '@/infra/notification/notification.service';
 
 @Injectable()
 export class UserService {
