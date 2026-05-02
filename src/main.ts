@@ -17,6 +17,7 @@ import { CacheInterceptor } from './common/interceptors/cache.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { BasicAuthMiddleware } from './common/middlewares/basic-auth.middleware';
+import { RedisIoAdapter } from './modules/socket/redis-io.adapter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -24,17 +25,13 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  //? trust proxy for correct client IP detection behind proxies (e.g., in production)
   app.set('trust proxy', 'loopback');
-
-  //? use Winston for logging
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   const config = app.get(ConfigService<Env, true>);
   logger.log('✅ Configuration loaded successfully');
 
-  //? security headers
-  logger.log('⚔️  Configuring security headers...');
+  // security headers
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith('/docs')) {
       helmet({ contentSecurityPolicy: false })(req, res, next);
@@ -43,78 +40,80 @@ async function bootstrap() {
     }
   });
 
-  //? cors
+  // cors
   const corsOrigin = config.get('CORS_ORIGIN', { infer: true });
-  logger.log(`📡 CORS enabled for origin: ${corsOrigin.toString()}`);
   app.enableCors({
     origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
 
-  //? gzip compression
-  logger.log('🗜️  Gzip compression enabled');
+  // compression + body parsing
   app.use(compression());
-
-  //? parse json body
   app.use(express.json());
 
-  //? global prefix
-  logger.log('🔧 Setting global prefix to /api/v1');
+  // global prefix
   app.setGlobalPrefix('api/v1', {
     exclude: ['health', 'queues', 'docs', 'docs-json', 'docs-yaml'],
   });
 
-  //? protect /docs and /queues with basic auth
-  logger.log('🔐 Protecting /docs and /queues endpoints with basic auth');
-  const docsUsername = config.get('DOCS_USERNAME', { infer: true });
-  const docsPassword = config.get('DOCS_PASSWORD', { infer: true });
-  const queuesUsername = config.get('QUEUES_USERNAME', { infer: true });
-  const queuesPassword = config.get('QUEUES_PASSWORD', { infer: true });
+  // basic auth for docs + queues
+  const docsAuth = new BasicAuthMiddleware(
+    config.get('DOCS_USERNAME', { infer: true }),
+    config.get('DOCS_PASSWORD', { infer: true }),
+  );
+  const queuesAuth = new BasicAuthMiddleware(
+    config.get('QUEUES_USERNAME', { infer: true }),
+    config.get('QUEUES_PASSWORD', { infer: true }),
+  );
+  app.use('/docs', (req: Request, res: Response, next: NextFunction) =>
+    docsAuth.use(req, res, next),
+  );
+  app.use('/docs-json', (req: Request, res: Response, next: NextFunction) =>
+    docsAuth.use(req, res, next),
+  );
+  app.use('/docs-yaml', (req: Request, res: Response, next: NextFunction) =>
+    docsAuth.use(req, res, next),
+  );
+  app.use('/queues', (req: Request, res: Response, next: NextFunction) =>
+    queuesAuth.use(req, res, next),
+  );
 
-  const docsAuth = new BasicAuthMiddleware(docsUsername, docsPassword);
-  const queuesAuth = new BasicAuthMiddleware(queuesUsername, queuesPassword);
-
-  app.use('/docs', (req, res, next) => docsAuth.use(req, res, next));
-  app.use('/docs-json', (req, res, next) => docsAuth.use(req, res, next));
-  app.use('/docs-yaml', (req, res, next) => docsAuth.use(req, res, next));
-  app.use('/queues', (req, res, next) => queuesAuth.use(req, res, next));
-
-  //? log raw request body for debugging
+  // raw body logger
   app.use((req: Request, _res: Response, next: NextFunction) => {
-    if (
-      req.method === 'POST' ||
-      req.method === 'PUT' ||
-      req.method === 'PATCH'
-    ) {
+    if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
       console.log(`📨 [${req.method}] ${req.path}`);
       console.log('Raw Body:', JSON.stringify(req.body, null, 2));
     }
     next();
   });
 
-  //? global pipes — zod validation
-  logger.log('✔️  Zod validation pipe configured');
+  // global pipes
   app.useGlobalPipes(new ZodValidationPipe());
 
-  //? global interceptors
-  logger.log('🎯 Global interceptors registered (Response, Cache)');
+  // global interceptors
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalInterceptors(app.get(CacheInterceptor));
 
-  //? global exception filter
-  logger.log('🛡️  Global exception filter configured');
+  // global exception filter
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(
     new GlobalExceptionFilter({ httpAdapter } as HttpAdapterHost),
   );
 
-  logger.log('📖 Setting up API documentation...');
+  // api docs
   setupApiDocs(app);
 
-  //? Enable shutdown hooks to allow graceful shutdown of the application
-  logger.log('🔄 Graceful shutdown hooks enabled');
+  // shutdown hooks
   app.enableShutdownHooks();
+
+  // init — must be before redis adapter
+  await app.init();
+
+  // redis socket.io adapter — after init so RedisService is ready
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const port = config.get('PORT', { infer: true });
   await app.listen(port);
@@ -126,5 +125,6 @@ async function bootstrap() {
 bootstrap().catch((err) => {
   const logger = new Logger('Bootstrap');
   logger.error('❌ Failed to start application', err);
+  console.error(err);
   process.exit(1);
 });
