@@ -24,7 +24,7 @@
     "pnpm": ">=10.20.0"
   },
   "scripts": {
-    "build": "nest build && nest build worker",
+    "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
