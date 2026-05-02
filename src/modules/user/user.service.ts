@@ -129,7 +129,10 @@ export class UserService {
         NotificationType.INFO,
       );
 
-      return result;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { passwordHash, ...safeUser } = result;
+
+      return safeUser;
     } catch (error) {
       this.logger.error(`❌ Profile update failed for user ${userId}:`, error);
       throw error;
