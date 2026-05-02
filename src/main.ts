@@ -79,15 +79,6 @@ async function bootstrap() {
     queuesAuth.use(req, res, next),
   );
 
-  // raw body logger
-  app.use((req: Request, _res: Response, next: NextFunction) => {
-    if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-      console.log(`📨 [${req.method}] ${req.path}`);
-      console.log('Raw Body:', JSON.stringify(req.body, null, 2));
-    }
-    next();
-  });
-
   // global pipes
   app.useGlobalPipes(new ZodValidationPipe());
 

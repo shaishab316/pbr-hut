@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import chalk from 'chalk';
 import { Request, Response, NextFunction } from 'express';
+import { maskSensitiveFields } from '../utils/maskSensitive';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
@@ -9,6 +10,14 @@ export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const { method, originalUrl } = req;
     const start = Date.now();
+
+    if (req.body && Object.keys(req.body).length) {
+      console.log(`📨 [${method}] ${originalUrl}`);
+      console.log(
+        'Raw Body:',
+        JSON.stringify(maskSensitiveFields(req.body), null, 2),
+      );
+    }
 
     res.on('finish', () => {
       const duration = Date.now() - start;

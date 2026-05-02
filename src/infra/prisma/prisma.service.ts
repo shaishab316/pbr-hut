@@ -16,6 +16,7 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
+  static slowQueryThreshold = 1000; // ms
 
   constructor(config: ConfigService<Env, true>) {
     const pool = new Pool({
@@ -45,11 +46,10 @@ export class PrismaService
 
   async onModuleInit() {
     this.$on('query' as never, (e: any) => {
-      if (e.duration > 1000) {
+      if (e.duration > PrismaService.slowQueryThreshold) {
         this.logger.warn(`Slow query (${e.duration}ms): ${e.query}`);
-      } else {
-        this.logger.debug(`Query (${e.duration}ms): ${e.query}`);
       }
+      // fast queries = silence
     });
 
     this.$on('error' as never, (e: any) => {

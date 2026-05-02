@@ -34,6 +34,7 @@ import { RiderRepository } from '../rider/repositories/rider.repository';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { NotificationService } from '@/infra/notification/notification.service';
+import { maskSensitiveFields } from '@/common/utils/maskSensitive';
 
 export type ResetPasswordTokenPayload = {
   sub: string; // userId
@@ -159,6 +160,11 @@ export class AuthService {
       this.logger.warn(`⚠️ Session expired for registration: ${identifier}`);
       throw new BadRequestException('Session expired, please sign up again');
     }
+
+    console.log(
+      'Retrieved unverified user data from cache:',
+      maskSensitiveFields(unverifiedUser),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { identifierType, ...userData } = unverifiedUser;
