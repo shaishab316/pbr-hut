@@ -11,6 +11,12 @@
       "root": "src",
       "entryFile": "worker/index",
       "sourceRoot": "src"
+    },
+    "cron": {
+      "type": "application",
+      "root": "src",
+      "entryFile": "cron/index",
+      "sourceRoot": "src"
     }
   }
 }

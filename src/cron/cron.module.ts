@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { WinstonModule } from 'nest-winston';
 import {
   validate as configValidate,
@@ -8,10 +8,12 @@ import {
 } from '../common/config/app.config';
 import { PrismaModule } from '../infra/prisma/prisma.module';
 import { RedisModule } from '../infra/redis/redis.module';
+import { AdsModule } from '../modules/ads/ads.module';
+import { AuthModule } from '../modules/auth/auth.module';
 import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
-import { MailWorkerModule } from '@/infra/mail/mail-worker.module';
-import { NotificationWorkerModule } from '@/infra/notification/notification-worker.module';
+import { NotificationModule } from '@/infra/notification/notification.module';
+import { MailModule } from '@/infra/mail/mail.module';
 
 @Module({
   imports: [
@@ -29,21 +31,18 @@ import { NotificationWorkerModule } from '@/infra/notification/notification-work
           }),
           new LokiTransport({
             host: config.get('LOKI_URL', { infer: true }),
-            labels: { job: 'nestjs-worker', app: 'pbr-hut' },
+            labels: { job: 'nestjs-cron', app: 'pbr-hut' },
           }),
         ],
       }),
     }),
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<Env, true>) => ({
-        connection: { url: config.get('REDIS_URL', { infer: true }) },
-      }),
-    }),
+    ScheduleModule.forRoot(),
+    NotificationModule,
+    MailModule,
     PrismaModule,
     RedisModule,
-    MailWorkerModule,
-    NotificationWorkerModule,
+    AdsModule,
+    AuthModule,
   ],
 })
-export class WorkerModule {}
+export class CronModule {}
