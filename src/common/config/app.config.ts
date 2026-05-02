@@ -41,7 +41,7 @@ const envSchema = z.object({
     .default('redis://localhost:6379')
     .describe('Redis connection URL'),
 
-  // JWT Authentication
+  // JWT
   JWT_SECRET: z
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters')
@@ -51,12 +51,17 @@ const envSchema = z.object({
     .default('7d')
     .describe('JWT token expiration time'),
 
+  // OTP
   OTP_SECRET: z
     .string()
     .min(10, 'OTP_SECRET must be at least 10 characters')
     .describe('Base secret for OTP generation'),
+  TEST_OTP: z
+    .string()
+    .default('123456')
+    .describe('Fixed OTP for testing, do not use in production'),
 
-  // Stripe Payment
+  // Stripe
   STRIPE_SECRET_KEY: z
     .string()
     .startsWith('sk_', 'STRIPE_SECRET_KEY must start with sk_')
@@ -70,7 +75,7 @@ const envSchema = z.object({
     .startsWith('whsec_', 'STRIPE_WEBHOOK_SECRET must start with whsec_')
     .describe('Stripe webhook signing secret'),
 
-  // Cloudinary Media
+  // Cloudinary
   CLOUDINARY_CLOUD_NAME: z
     .string()
     .min(1, 'CLOUDINARY_CLOUD_NAME is required')
@@ -84,7 +89,7 @@ const envSchema = z.object({
     .min(1, 'CLOUDINARY_API_SECRET is required')
     .describe('Cloudinary API secret'),
 
-  // Email (Nodemailer)
+  // SMTP
   SMTP_HOST: z
     .string()
     .min(1, 'SMTP_HOST is required')
@@ -108,6 +113,16 @@ const envSchema = z.object({
     .describe('Email sender address'),
   SMTP_FROM_NAME: z.string().default('PBR Hut').describe('Email sender name'),
 
+  // OneSignal
+  ONESIGNAL_APP_ID: z
+    .string()
+    .min(1, 'ONESIGNAL_APP_ID is required')
+    .describe('OneSignal App ID'),
+  ONESIGNAL_API_KEY: z
+    .string()
+    .min(1, 'ONESIGNAL_API_KEY is required')
+    .describe('OneSignal REST API key'),
+
   // Admin
   ADMIN_EMAIL: z
     .email('ADMIN_EMAIL must be a valid email')
@@ -117,49 +132,43 @@ const envSchema = z.object({
     .min(6, 'ADMIN_PASSWORD must be at least 6 characters')
     .describe('Admin initial password'),
 
-  // Optional - Logging & Analytics
+  // Logging
   LOG_LEVEL: z
     .enum(['error', 'warn', 'log', 'debug', 'verbose'])
     .default('log')
     .describe('Logging level'),
-
-  TEST_OTP: z
-    .string()
-    .describe('A fixed OTP for testing purposes, do not use in production')
-    .default('123456'),
-
   LOKI_URL: z
     .url('LOKI_URL must be a valid URL')
     .default('http://localhost:3100')
-    .describe('Loki logging server URL'),
-
-  ONESIGNAL_API_KEY: z
+    .describe('Loki server URL'),
+  LOKI_USER: z
     .string()
-    .min(1, 'ONESIGNAL_API_KEY is required')
-    .describe('OneSignal REST API key'),
-
-  ONESIGNAL_APP_ID: z
+    .min(1, 'LOKI_USER is required')
+    .optional()
+    .describe('Loki basic auth user'),
+  LOKI_PASSWORD: z
     .string()
-    .min(1, 'ONESIGNAL_APP_ID is required')
-    .describe('OneSignal App ID'),
+    .min(1, 'LOKI_PASSWORD is required')
+    .optional()
+    .describe('Loki basic auth password / API token'),
 
-  // Protected Routes (Docs & Queues)
+  // Protected Routes
   DOCS_USERNAME: z
     .string()
-    .min(1, 'DOCS_USERNAME is required for protecting /docs')
-    .describe('Username for API documentation access'),
+    .min(1, 'DOCS_USERNAME is required')
+    .describe('Username for /docs access'),
   DOCS_PASSWORD: z
     .string()
     .min(6, 'DOCS_PASSWORD must be at least 6 characters')
-    .describe('Password for API documentation access'),
+    .describe('Password for /docs access'),
   QUEUES_USERNAME: z
     .string()
-    .min(1, 'QUEUES_USERNAME is required for protecting /queues')
-    .describe('Username for Bull Board queue admin access'),
+    .min(1, 'QUEUES_USERNAME is required')
+    .describe('Username for /queues access'),
   QUEUES_PASSWORD: z
     .string()
     .min(6, 'QUEUES_PASSWORD must be at least 6 characters')
-    .describe('Password for Bull Board queue admin access'),
+    .describe('Password for /queues access'),
 });
 
 export const validate = (config: Record<string, unknown>) => {

@@ -29,6 +29,9 @@ import { NotificationWorkerModule } from '@/infra/notification/notification-work
           }),
           new LokiTransport({
             host: config.get('LOKI_URL', { infer: true }),
+            ...(config.get('LOKI_USER', { infer: true }) && {
+              basicAuth: `${config.get('LOKI_USER', { infer: true })}:${config.get('LOKI_PASSWORD', { infer: true })}`,
+            }),
             labels: { job: 'nestjs-worker', app: 'pbr-hut' },
           }),
         ],

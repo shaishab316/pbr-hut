@@ -58,6 +58,9 @@ import { NOTIFICATION_QUEUE } from './infra/notification/notification.constants'
           }),
           new LokiTransport({
             host: config.get('LOKI_URL', { infer: true }),
+            ...(config.get('LOKI_USER', { infer: true }) && {
+              basicAuth: `${config.get('LOKI_USER', { infer: true })}:${config.get('LOKI_PASSWORD', { infer: true })}`,
+            }),
             labels: { job: 'nestjs', app: 'pbr-hut' },
           }),
         ],

@@ -31,6 +31,9 @@ import { MailModule } from '@/infra/mail/mail.module';
           }),
           new LokiTransport({
             host: config.get('LOKI_URL', { infer: true }),
+            ...(config.get('LOKI_USER', { infer: true }) && {
+              basicAuth: `${config.get('LOKI_USER', { infer: true })}:${config.get('LOKI_PASSWORD', { infer: true })}`,
+            }),
             labels: { job: 'nestjs-cron', app: 'pbr-hut' },
           }),
         ],
