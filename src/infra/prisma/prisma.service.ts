@@ -23,11 +23,9 @@ export class PrismaService
       connectionString: config.get('DATABASE_URL', { infer: true }),
       max: 10,
       min: 2,
-      idleTimeoutMillis: 60000,
+      idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 5000,
       maxUses: 7500,
-      statement_timeout: 30000,
-      idle_in_transaction_session_timeout: 60000,
     });
 
     const adapter = new PrismaPg(pool);
