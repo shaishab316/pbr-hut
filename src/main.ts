@@ -18,6 +18,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { BasicAuthMiddleware } from './common/middlewares/basic-auth.middleware';
 import { RedisIoAdapter } from './modules/socket/redis-io.adapter';
+import path from 'node:path';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -33,7 +34,11 @@ async function bootstrap() {
 
   // security headers
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/docs')) {
+    if (
+      req.path.startsWith('/docs') ||
+      req.path.startsWith('/queues') ||
+      req.path === '/'
+    ) {
       helmet({ contentSecurityPolicy: false })(req, res, next);
     } else {
       helmet()(req, res, next);
@@ -51,6 +56,8 @@ async function bootstrap() {
   // compression + body parsing
   app.use(compression());
   app.use(express.json());
+
+  app.useStaticAssets(path.join(process.cwd(), 'public'), { maxAge: '1d' });
 
   // global prefix
   app.setGlobalPrefix('api/v1', {
