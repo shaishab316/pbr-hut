@@ -103,11 +103,17 @@ export class OrderController {
   @Get(':orderId')
   @CacheKey('orders:single::params.orderId')
   @CacheTTL(120)
-  getById(
+  async getById(
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: UserRole,
     @Param('orderId', ParseUUIDPipe) orderId: string,
   ) {
-    return this.orderService.getById(userId, orderId);
+    const order = await this.orderService.getById(userId, orderId, userRole);
+
+    return {
+      message: 'Order retrieved successfully',
+      data: order,
+    };
   }
 
   @ApiCancelOrder()

@@ -108,12 +108,9 @@ export class OrderRepository {
     ]);
   }
 
-  findByIdForUser(
-    userId: string,
-    orderId: string,
-  ): Promise<OrderWithDetailPayload | null> {
-    return this.prisma.order.findFirst({
-      where: { id: orderId, userId },
+  async findById(orderId: string): Promise<OrderWithDetailPayload | null> {
+    return await this.prisma.order.findFirst({
+      where: { id: orderId },
       include: orderDetailInclude,
     });
   }

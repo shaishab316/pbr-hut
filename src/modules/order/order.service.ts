@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -14,6 +15,7 @@ import {
   Size,
   NotificationType,
   UserRole,
+  Order,
 } from '@prisma/client';
 import { H3IndexUtil } from '@/common/utils/h3index.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
@@ -315,12 +317,18 @@ export class OrderService {
     };
   }
 
-  async getById(userId: string, orderId: string) {
-    const order = await this.orderRepo.findByIdForUser(userId, orderId);
+  async getById(userId: string, orderId: string, userRole?: UserRole) {
+    const order = await this.orderRepo.findById(orderId);
+
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    return { message: 'Success', data: order };
+
+    if (!this.canAccessOrder(order, userId, userRole)) {
+      throw new ForbiddenException('You do not have access to this order');
+    }
+
+    return order;
   }
 
   async cancel(userId: string, orderId: string) {
@@ -704,5 +712,12 @@ export class OrderService {
       );
       // Don't throw - this is best effort
     }
+  }
+
+  canAccessOrder(order: Order, userId: string, userRole?: UserRole): boolean {
+    if (userRole === UserRole.ADMIN) return true;
+    if (userRole === UserRole.CUSTOMER) return order.userId === userId;
+    if (userRole === UserRole.RIDER) return order.assignedRiderId === userId;
+    return false;
   }
 }
